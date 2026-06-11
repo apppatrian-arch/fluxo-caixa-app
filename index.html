@@ -642,6 +642,7 @@
     <div class="tabs">
       <button class="tab active" id="tab-lancamentos" onclick="setTab('lancamentos')">Lançamentos</button>
       <button class="tab" id="tab-novo" onclick="setTab('novo')">+ Novo</button>
+      <button class="tab" id="tab-recorrentes" onclick="setTab('recorrentes')">🔁 Recorrentes</button>
       <button class="tab" id="tab-pessoas" onclick="setTab('pessoas')">Pessoas</button>
       <button class="tab" id="tab-historico" onclick="setTab('historico')">Histórico</button>
     </div>
@@ -711,6 +712,17 @@
         </div>
 
         <button class="btn btn-primary" id="btn-salvar" onclick="salvarLancamento()">Salvar Lançamento</button>
+      </div>
+    </div>
+
+    <!-- ── PAINEL RECORRENTES ── -->
+    <div id="painel-recorrentes" style="display:none;">
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h2 style="margin:0;">Pagamentos Recorrentes</h2>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalRecorrente()">+ Novo</button>
+        </div>
+        <div id="lista-recorrentes"></div>
       </div>
     </div>
 
@@ -856,6 +868,40 @@
   </div>
 </div>
 
+<!-- MODAL PAGAMENTO RECORRENTE -->
+<div class="modal-overlay" id="modal-recorrente">
+  <div class="modal">
+    <h2 id="rec-modal-titulo">🔁 Novo Recorrente</h2>
+    <div class="form-group">
+      <label>Pessoa</label>
+      <div style="display:flex;gap:8px;">
+        <select id="rec-pessoa" style="flex:1;"></select>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalNovaPessoa()" style="flex-shrink:0;padding:11px 12px;">+</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <input type="text" id="rec-descricao" placeholder="Ex: Aluguel, Mensalidade..." maxlength="60" />
+    </div>
+    <div class="form-group">
+      <label>Valor (R$)</label>
+      <input type="number" id="rec-valor" placeholder="0,00" min="0" step="0.01" inputmode="decimal" />
+    </div>
+    <div class="form-group">
+      <label>Dia do vencimento (todo mês)</label>
+      <input type="number" id="rec-dia" placeholder="Ex: 10" min="1" max="31" inputmode="numeric" />
+    </div>
+    <div class="form-group">
+      <label>Categoria</label>
+      <select id="rec-categoria"></select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModalRecorrente()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarRecorrente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAR EXCLUSÃO -->
 <div class="modal-overlay" id="modal-del">
   <div class="modal">
@@ -877,9 +923,11 @@
   // ══════════════════════════════════════════
   let currentUser = null;
   let lancamentos = [];
+  let recorrentes = [];   // { id, pessoaId, descricao, valor, dia, categoria, pagos: ['2026-06', ...] }
   let tipoAtual = 'rec';
   let filtroAtual = 'todos';
   let deletandoId = null;
+  let deletandoRecId = null;
 
   const CATEGORIAS_SISTEMA = {
     rec: ['Vendas', 'Serviços', 'Salário', 'Transferência', 'Outros'],
@@ -924,7 +972,7 @@
   function logout() {
     localStorage.removeItem('fc_session');
     currentUser = null;
-    lancamentos = []; pessoas = [];
+    lancamentos = []; pessoas = []; recorrentes = [];
     categoriasCustom = { rec: [], pag: [] };
     categoriasOcultas = { rec: [], pag: [] };
     categoriasPromovidas = { rec: [], pag: [] };
@@ -968,10 +1016,12 @@
   async function carregarLancamentos() {
     lancamentos          = JSON.parse(localStorage.getItem(chaveLocal('lanc'))       || '[]');
     pessoas              = JSON.parse(localStorage.getItem(chaveLocal('pessoas'))    || '[]');
+    recorrentes          = JSON.parse(localStorage.getItem(chaveLocal('rec'))        || '[]');
     categoriasCustom     = JSON.parse(localStorage.getItem(chaveLocal('cat'))        || '{"rec":[],"pag":[]}');
     categoriasOcultas    = JSON.parse(localStorage.getItem(chaveLocal('cat-ocult'))  || '{"rec":[],"pag":[]}');
     categoriasPromovidas = JSON.parse(localStorage.getItem(chaveLocal('cat-prom'))   || '{"rec":[],"pag":[]}');
     atualizarSaldo();
+    verificarRecorrentes();
   }
 
   async function salvarLancamentos() {
@@ -982,6 +1032,7 @@
   function sincronizar() {
     localStorage.setItem(chaveLocal('lanc'),       JSON.stringify(lancamentos));
     localStorage.setItem(chaveLocal('pessoas'),    JSON.stringify(pessoas));
+    localStorage.setItem(chaveLocal('rec'),        JSON.stringify(recorrentes));
     localStorage.setItem(chaveLocal('cat'),        JSON.stringify(categoriasCustom));
     localStorage.setItem(chaveLocal('cat-ocult'),  JSON.stringify(categoriasOcultas));
     localStorage.setItem(chaveLocal('cat-prom'),   JSON.stringify(categoriasPromovidas));
@@ -991,7 +1042,7 @@
   //  NAVEGAÇÃO
   // ══════════════════════════════════════════
   function setTab(tab) {
-    ['lancamentos', 'novo', 'pessoas', 'historico'].forEach(t => {
+    ['lancamentos', 'novo', 'recorrentes', 'pessoas', 'historico'].forEach(t => {
       document.getElementById('painel-' + t).style.display = (t === tab) ? 'block' : 'none';
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
@@ -999,6 +1050,7 @@
     if (tab === 'lancamentos') renderLancamentos();
     if (tab === 'historico') renderHistorico();
     if (tab === 'pessoas') renderPessoas();
+    if (tab === 'recorrentes') renderRecorrentes();
     if (tab === 'novo') {
       setTipo(tipoAtual);
       popularSelectPessoa();
@@ -1761,6 +1813,149 @@
   // Enter no login
   document.getElementById('login-pass').addEventListener('keydown', e => {
     if (e.key === 'Enter') login();
+  });
+
+  // ══════════════════════════════════════════
+  //  PAGAMENTOS RECORRENTES
+  // ══════════════════════════════════════════
+  function mesAtual() {
+    const h = new Date();
+    return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function recIsPago(r) {
+    return (r.pagos || []).includes(mesAtual());
+  }
+
+  function verificarRecorrentes() {
+    if (!recorrentes.length) return;
+    const hoje = new Date();
+    const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+    const diaAmanha = amanha.getDate();
+    const mes = mesAtual();
+
+    const pendentes = recorrentes.filter(r => {
+      if ((r.pagos || []).includes(mes)) return false;
+      return r.dia === diaAmanha || r.dia === hoje.getDate();
+    });
+
+    if (!pendentes.length) return;
+
+    // Mostra alerta no app
+    const nomes = pendentes.map(r => {
+      const p = pessoas.find(x => x.id === r.pessoaId);
+      const nome = p ? p.nome : 'Pessoa';
+      const quando = r.dia === hoje.getDate() ? 'hoje' : 'amanhã';
+      return `• ${nome} — ${r.descricao || 'Pagamento'} (dia ${r.dia}) — vence ${quando}`;
+    }).join('\n');
+
+    setTimeout(() => {
+      const aviso = document.createElement('div');
+      aviso.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:420px;background:#fff3cd;border:1.5px solid #ffc107;border-radius:12px;padding:14px 16px;z-index:500;font-size:13px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,0.15);`;
+      aviso.innerHTML = `<strong>⚠️ Pagamentos pendentes:</strong><br><pre style="margin:6px 0 10px;font-family:inherit;white-space:pre-wrap;">${nomes}</pre><div style="display:flex;gap:8px;"><button onclick="setTab('recorrentes');this.closest('div').parentElement.remove();" style="flex:1;padding:8px;background:#ffc107;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Ver recorrentes</button><button onclick="this.closest('div').parentElement.remove();" style="padding:8px 14px;background:none;border:1.5px solid #ffc107;border-radius:8px;cursor:pointer;">Fechar</button></div>`;
+      document.body.appendChild(aviso);
+    }, 800);
+  }
+
+  function renderRecorrentes() {
+    const el = document.getElementById('lista-recorrentes');
+    if (!recorrentes.length) {
+      el.innerHTML = `<div class="empty-state"><span class="icon">🔁</span>Nenhum pagamento recorrente cadastrado.</div>`;
+      return;
+    }
+    const mes = mesAtual();
+    el.innerHTML = recorrentes.map(r => {
+      const p = pessoas.find(x => x.id === r.pessoaId);
+      const nome = p ? p.nome : '—';
+      const pago = (r.pagos || []).includes(mes);
+      const valor = r.valor ? `R$ ${parseFloat(r.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}` : '';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);">
+          <div style="width:38px;height:38px;border-radius:50%;background:${pago ? '#e8f5e9' : '#fff3e0'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${pago ? '✅' : '⏰'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;font-size:14px;">${esc(nome)}</div>
+            <div style="font-size:12px;color:var(--text-muted);">${esc(r.descricao || '')}${r.categoria ? ' · ' + esc(r.categoria) : ''} · Todo dia <strong>${r.dia}</strong></div>
+            ${valor ? `<div style="font-size:13px;font-weight:700;color:var(--danger);">${valor}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            ${pago
+              ? `<button onclick="desmarcarPago('${r.id}')" style="font-size:11px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:white;cursor:pointer;color:var(--text-muted);">Desfazer</button>`
+              : `<button onclick="marcarPago('${r.id}')" style="font-size:11px;padding:4px 8px;border:none;border-radius:6px;background:var(--success);color:white;font-weight:700;cursor:pointer;">Pago ✓</button>`
+            }
+            <button onclick="excluirRecorrente('${r.id}')" style="font-size:11px;padding:4px 8px;border:1.5px solid var(--danger);border-radius:6px;background:white;color:var(--danger);cursor:pointer;">Excluir</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function abrirModalRecorrente() {
+    document.getElementById('rec-modal-titulo').textContent = '🔁 Novo Recorrente';
+    document.getElementById('rec-pessoa').innerHTML = '<option value="">-- Selecione --</option>';
+    pessoas.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = p.nome;
+      document.getElementById('rec-pessoa').appendChild(o);
+    });
+    document.getElementById('rec-descricao').value = '';
+    document.getElementById('rec-valor').value = '';
+    document.getElementById('rec-dia').value = '';
+    // Popular categorias de pagamento
+    const sel = document.getElementById('rec-categoria');
+    sel.innerHTML = '<option value="">-- Selecione --</option>';
+    todasCategorias('pag').forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c; sel.appendChild(o);
+    });
+    document.getElementById('modal-recorrente').classList.add('open');
+  }
+
+  function fecharModalRecorrente() {
+    document.getElementById('modal-recorrente').classList.remove('open');
+  }
+
+  function salvarRecorrente() {
+    const pessoaId  = document.getElementById('rec-pessoa').value;
+    const descricao = document.getElementById('rec-descricao').value.trim();
+    const valor     = parseFloat(document.getElementById('rec-valor').value) || 0;
+    const dia       = parseInt(document.getElementById('rec-dia').value);
+    const categoria = document.getElementById('rec-categoria').value;
+
+    if (!pessoaId) { toast('Selecione uma pessoa.'); return; }
+    if (!dia || dia < 1 || dia > 31) { toast('Informe um dia válido (1-31).'); return; }
+
+    recorrentes.push({ id: Date.now().toString(), pessoaId, descricao, valor, dia, categoria, pagos: [] });
+    sincronizar();
+    fecharModalRecorrente();
+    renderRecorrentes();
+    toast('✅ Pagamento recorrente salvo!');
+  }
+
+  function marcarPago(id) {
+    const r = recorrentes.find(x => x.id === id);
+    if (!r) return;
+    if (!r.pagos) r.pagos = [];
+    const mes = mesAtual();
+    if (!r.pagos.includes(mes)) r.pagos.push(mes);
+    sincronizar(); renderRecorrentes();
+    toast('✅ Marcado como pago!');
+  }
+
+  function desmarcarPago(id) {
+    const r = recorrentes.find(x => x.id === id);
+    if (!r) return;
+    r.pagos = (r.pagos || []).filter(m => m !== mesAtual());
+    sincronizar(); renderRecorrentes();
+  }
+
+  function excluirRecorrente(id) {
+    if (!confirm('Excluir este pagamento recorrente?')) return;
+    recorrentes = recorrentes.filter(r => r.id !== id);
+    sincronizar(); renderRecorrentes();
+    toast('Recorrente removido.');
+  }
+
+  document.getElementById('modal-recorrente').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalRecorrente();
   });
 
   // ══════════════════════════════════════════
