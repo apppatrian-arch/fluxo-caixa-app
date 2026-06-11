@@ -16,6 +16,7 @@
   <link rel="icon" type="image/svg+xml" href="./icon.svg" />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --primary: #1a73e8;
@@ -635,8 +636,8 @@
       <p>Controle seus recebimentos e pagamentos</p>
     </div>
     <div class="form-group">
-      <label>Usuário</label>
-      <input type="text" id="login-user" placeholder="seu usuário" autocomplete="username" />
+      <label>E-mail</label>
+      <input type="email" id="login-user" placeholder="seu@email.com" autocomplete="email" inputmode="email" />
     </div>
     <div class="form-group">
       <label>Senha</label>
@@ -644,8 +645,11 @@
     </div>
     <button class="btn btn-primary" onclick="login()">Entrar</button>
     <div id="login-error"></div>
-    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:16px;">
-      Primeiro acesso? Use qualquer usuário e senha para criar sua conta.
+    <button type="button" onclick="abrirEsqueciSenha()" style="background:none;border:none;color:var(--primary);font-size:13px;cursor:pointer;margin-top:12px;width:100%;text-align:center;padding:4px;">
+      Esqueci minha senha
+    </button>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px;">
+      Primeiro acesso? Digite seu e-mail e uma senha para criar sua conta.
     </p>
   </div>
 </div>
@@ -674,6 +678,9 @@
           </button>
           <button onclick="abrirModalGitHub()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
             ☁️ Config. GitHub
+          </button>
+          <button onclick="abrirModalEmailJS()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
+            📧 Config. E-mail
           </button>
           <button onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--danger);border-top:1px solid var(--border);">
             🚪 Sair
@@ -854,6 +861,59 @@
   </div>
 </div>
 
+<!-- MODAL ESQUECI A SENHA -->
+<div class="modal-overlay" id="modal-esqueci">
+  <div class="modal">
+    <h2>Recuperar senha</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
+      Digite o seu e-mail cadastrado. A senha será enviada para ele.
+    </p>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" id="esqueci-email" placeholder="seu@email.com" inputmode="email" />
+    </div>
+    <div id="esqueci-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharEsqueciSenha()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-recuperar" onclick="recuperarSenha()">Enviar senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIG EMAILJS -->
+<div class="modal-overlay" id="modal-emailjs">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <h2>📧 Configurar E-mail (EmailJS)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">
+      Configure o EmailJS para enviar a senha por e-mail quando o usuário esquecer. Veja as instruções abaixo.
+    </p>
+    <ol class="github-steps" style="margin-bottom:16px;">
+      <li>Crie conta grátis em <strong>emailjs.com</strong></li>
+      <li>Em <strong>Email Services</strong> conecte seu Gmail ou outro provedor</li>
+      <li>Em <strong>Email Templates</strong> crie um template com as variáveis:<br>
+          <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:11px;">{{to_email}}</code> e <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:11px;">{{senha}}</code></li>
+      <li>Copie o <strong>Service ID</strong>, <strong>Template ID</strong> e <strong>Public Key</strong></li>
+    </ol>
+    <div class="form-group">
+      <label>Public Key</label>
+      <input type="text" id="ejs-pubkey" placeholder="ex: aBcDeFgHiJkLmNoPq" />
+    </div>
+    <div class="form-group">
+      <label>Service ID</label>
+      <input type="text" id="ejs-service" placeholder="ex: service_xxxxxxx" />
+    </div>
+    <div class="form-group">
+      <label>Template ID</label>
+      <input type="text" id="ejs-template" placeholder="ex: template_xxxxxxx" />
+    </div>
+    <div id="ejs-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModalEmailJS()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarConfigEmailJS()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GITHUB CONFIG (edição) -->
 <div class="modal-overlay" id="modal-github">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
@@ -982,12 +1042,14 @@
   function logout() {
     localStorage.removeItem('fc_session');
     currentUser = null;
-    lancamentos = [];
+    lancamentos = []; pessoas = []; categoriasCustom = { rec: [], pag: [] };
+    ghShas = {};
     document.getElementById('app-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-user').value = '';
     document.getElementById('login-pass').value = '';
     document.getElementById('login-error').textContent = '';
+    document.getElementById('menu-perfil').style.display = 'none';
   }
 
   function verificarSessao() {
@@ -1011,7 +1073,7 @@
     document.getElementById('github-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
-    document.getElementById('topbar-user').textContent = currentUser;
+    document.getElementById('topbar-user').textContent = currentUser.split('@')[0];
     document.getElementById('menu-username').textContent = currentUser;
 
     await carregarLancamentos(); // carrega tudo (lancamentos + pessoas + categorias) do GitHub ou local
@@ -1033,7 +1095,9 @@
   }
 
   function ghFilePath() {
-    return `Fluxo Caixa Pessoal/data/${currentUser}.json`;
+    // Sanitiza o email para nome de arquivo seguro
+    const safe = currentUser.replace('@', '_at_').replace(/[^a-zA-Z0-9_.-]/g, '_');
+    return `Fluxo Caixa Pessoal/data/${safe}.json`;
   }
 
   function setSyncStatus(status) {
@@ -1687,19 +1751,22 @@
 
   // também precisa funcionar no login
   function login() {
-    const user = document.getElementById('login-user').value.trim();
-    const pass = document.getElementById('login-pass').value;
-    if (!user || !pass) { document.getElementById('login-error').textContent = 'Preencha usuário e senha.'; return; }
+    const email = document.getElementById('login-user').value.trim().toLowerCase();
+    const pass  = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+
+    if (!email || !pass) { errEl.textContent = 'Preencha e-mail e senha.'; return; }
+    if (!emailValido(email)) { errEl.textContent = 'Digite um e-mail válido.'; return; }
 
     const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
-    if (usuarios[user]) {
-      if (usuarios[user].senha !== btoa(pass)) { document.getElementById('login-error').textContent = 'Senha incorreta.'; return; }
+    if (usuarios[email]) {
+      if (usuarios[email].senha !== btoa(pass)) { errEl.textContent = 'Senha incorreta.'; return; }
     } else {
-      usuarios[user] = { senha: btoa(pass), criadoEm: new Date().toISOString() };
+      usuarios[email] = { senha: btoa(pass), email, criadoEm: new Date().toISOString() };
       localStorage.setItem('fc_usuarios', JSON.stringify(usuarios));
     }
-    currentUser = user;
-    localStorage.setItem('fc_session', user);
+    currentUser = email;
+    localStorage.setItem('fc_session', email);
 
     carregarGhConfig();
     if (!ghConfig && !localStorage.getItem('fc_gh_skip')) {
@@ -1708,6 +1775,112 @@
       iniciarApp();
     }
   }
+
+  // ══════════════════════════════════════════
+  //  EMAILJS — RECUPERAÇÃO DE SENHA
+  // ══════════════════════════════════════════
+  function emailValido(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  function carregarEJSConfig() {
+    const s = localStorage.getItem('fc_ejs_config');
+    return s ? JSON.parse(s) : null;
+  }
+
+  function abrirModalEmailJS() {
+    document.getElementById('menu-perfil').style.display = 'none';
+    const cfg = carregarEJSConfig() || {};
+    document.getElementById('ejs-pubkey').value   = cfg.publicKey  || '';
+    document.getElementById('ejs-service').value  = cfg.serviceId  || '';
+    document.getElementById('ejs-template').value = cfg.templateId || '';
+    document.getElementById('ejs-status').textContent = '';
+    document.getElementById('modal-emailjs').classList.add('open');
+  }
+
+  function fecharModalEmailJS() {
+    document.getElementById('modal-emailjs').classList.remove('open');
+  }
+
+  function salvarConfigEmailJS() {
+    const publicKey  = document.getElementById('ejs-pubkey').value.trim();
+    const serviceId  = document.getElementById('ejs-service').value.trim();
+    const templateId = document.getElementById('ejs-template').value.trim();
+    const st = document.getElementById('ejs-status');
+
+    if (!publicKey || !serviceId || !templateId) {
+      st.style.color = 'var(--danger)'; st.textContent = 'Preencha todos os campos.'; return;
+    }
+
+    localStorage.setItem('fc_ejs_config', JSON.stringify({ publicKey, serviceId, templateId }));
+    st.style.color = 'var(--success)'; st.textContent = '✅ Configuração salva!';
+    setTimeout(fecharModalEmailJS, 1200);
+  }
+
+  document.getElementById('modal-emailjs').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalEmailJS();
+  });
+
+  function abrirEsqueciSenha() {
+    document.getElementById('esqueci-email').value = '';
+    document.getElementById('esqueci-status').textContent = '';
+    document.getElementById('btn-recuperar').disabled = false;
+    document.getElementById('btn-recuperar').textContent = 'Enviar senha';
+    document.getElementById('modal-esqueci').classList.add('open');
+    setTimeout(() => document.getElementById('esqueci-email').focus(), 100);
+  }
+
+  function fecharEsqueciSenha() {
+    document.getElementById('modal-esqueci').classList.remove('open');
+  }
+
+  async function recuperarSenha() {
+    const email  = document.getElementById('esqueci-email').value.trim().toLowerCase();
+    const st     = document.getElementById('esqueci-status');
+    const btn    = document.getElementById('btn-recuperar');
+
+    if (!email) { st.style.color = 'var(--danger)'; st.textContent = 'Digite o e-mail.'; return; }
+    if (!emailValido(email)) { st.style.color = 'var(--danger)'; st.textContent = 'E-mail inválido.'; return; }
+
+    const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
+    if (!usuarios[email]) {
+      st.style.color = 'var(--danger)'; st.textContent = 'E-mail não encontrado.'; return;
+    }
+
+    const ejsCfg = carregarEJSConfig();
+    if (!ejsCfg) {
+      st.style.color = 'var(--danger)';
+      st.textContent = 'Configure o EmailJS primeiro (menu perfil → 📧 Config. E-mail).'; return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    st.style.color = 'var(--text-muted)'; st.textContent = 'Enviando e-mail...';
+
+    const senhaDecoded = atob(usuarios[email].senha);
+
+    try {
+      emailjs.init({ publicKey: ejsCfg.publicKey });
+      await emailjs.send(ejsCfg.serviceId, ejsCfg.templateId, {
+        to_email: email,
+        senha: senhaDecoded,
+      });
+      st.style.color = 'var(--success)';
+      st.textContent = '✅ Senha enviada para ' + email;
+      btn.textContent = 'Enviado!';
+    } catch (e) {
+      st.style.color = 'var(--danger)';
+      st.textContent = '❌ Falha ao enviar. Verifique a configuração do EmailJS.';
+      btn.disabled = false; btn.textContent = 'Enviar senha';
+    }
+  }
+
+  document.getElementById('modal-esqueci').addEventListener('click', function(e) {
+    if (e.target === this) fecharEsqueciSenha();
+  });
+
+  document.getElementById('esqueci-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') recuperarSenha();
+  });
 
   // ══════════════════════════════════════════
   //  MENU PERFIL / ALTERAR SENHA
