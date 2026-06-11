@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  fluxo-caixa-pessoal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fluxo-caixa-pessoal:latest
+    container_name: fluxo-caixa-pessoal
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    labels:
+      - "com.docker.compose.project=fluxo-caixa-pessoal"
