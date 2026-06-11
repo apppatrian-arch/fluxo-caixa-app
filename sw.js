@@ -1,4 +1,4 @@
-const CACHE = 'fluxo-caixa-v8';
+const CACHE = 'fluxo-caixa-v9';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -6,14 +6,13 @@ const ASSETS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
-// config.js é gerado dinamicamente pelo Docker — nunca cachear
 const NO_CACHE = ['config.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(ASSETS))
   );
-  self.skipWaiting();
+  // Não chama skipWaiting aqui — a página controla quando trocar
 });
 
 self.addEventListener('activate', e => {
@@ -25,8 +24,14 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// Recebe sinal da página para ativar imediatamente
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', e => {
-  // config.js sempre busca da rede (nunca cache)
   if (NO_CACHE.some(f => e.request.url.includes(f))) {
     e.respondWith(fetch(e.request));
     return;

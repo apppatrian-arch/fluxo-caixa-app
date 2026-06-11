@@ -1769,9 +1769,33 @@
   // ══════════════════════════════════════════
   verificarSessao();
 
-  // Registra Service Worker para funcionamento offline
+  // Registra Service Worker — detecta atualização e recarrega automaticamente
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Verifica se já existe uma nova versão aguardando
+      if (reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
+      // Nova versão encontrada durante a visita
+      reg.addEventListener('updatefound', () => {
+        const novo = reg.installing;
+        novo.addEventListener('statechange', () => {
+          if (novo.state === 'installed' && navigator.serviceWorker.controller) {
+            novo.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+
+      // Quando o SW trocou — recarrega a página para usar a versão nova
+      let recarregando = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!recarregando) {
+          recarregando = true;
+          window.location.reload();
+        }
+      });
+    }).catch(() => {});
   }
 </script>
 </body>
