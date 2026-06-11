@@ -15,8 +15,6 @@
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="icon" type="image/svg+xml" href="./icon.svg" />
 
-  <!-- Config injetada pelo Docker via entrypoint.sh (.env → config.js) -->
-  <script src="./config.js" onerror="window.APP_CONFIG=null"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -553,7 +551,7 @@
     .badge-pag { background: #fce8e6; color: var(--danger); }
 
     /* ── SYNC ── */
-    .sync-dot {
+    .sync-dot-unused {
       width: 8px; height: 8px; border-radius: 50%;
       background: #4caf50; display: inline-block; margin-left: 4px;
     }
@@ -562,71 +560,9 @@
 
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* ── TELA GITHUB CONFIG ── */
-    #github-screen {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-      background: linear-gradient(135deg, #1a73e8 0%, #0f5dbf 100%);
-    }
-    .github-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 28px 24px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-    .github-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-    .github-card p  { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
-    .github-steps { background: var(--bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; }
-    .github-steps li { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; line-height: 1.5; }
-    #github-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
-
-<!-- ═══════════════ GITHUB CONFIG ═══════════════ -->
-<div id="github-screen">
-  <div class="github-card">
-    <div style="text-align:center;margin-bottom:20px;">
-      <span style="font-size:40px;">⚙️</span>
-      <h2 style="margin-top:8px;">Configurar GitHub</h2>
-      <p>Os dados do app serão salvos no seu repositório GitHub. Configure uma vez e use em qualquer dispositivo.</p>
-    </div>
-
-    <ol class="github-steps">
-      <li>Acesse <strong>github.com → Settings → Developer Settings → Personal access tokens</strong></li>
-      <li>Clique em <strong>Generate new token (classic)</strong></li>
-      <li>Marque a permissão <strong>repo</strong> (acesso completo)</li>
-      <li>Copie o token gerado e cole abaixo</li>
-    </ol>
-
-    <div class="form-group">
-      <label>Token do GitHub</label>
-      <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
-    </div>
-    <div class="form-group">
-      <label>Usuário/Organização do GitHub</label>
-      <input type="text" id="gh-owner" placeholder="ex: joaosilva" />
-    </div>
-    <div class="form-group">
-      <label>Nome do Repositório</label>
-      <input type="text" id="gh-repo" placeholder="ex: dashboard.diretoria" />
-    </div>
-    <div class="form-group">
-      <label>Branch</label>
-      <input type="text" id="gh-branch" placeholder="main" value="main" />
-    </div>
-
-    <div id="github-error"></div>
-    <button class="btn btn-primary" id="btn-gh-salvar" onclick="salvarConfigGitHub()">Conectar e continuar</button>
-    <button class="btn btn-ghost" style="margin-top:8px;" onclick="usarSemGitHub()">Usar sem GitHub (dados locais)</button>
-  </div>
-</div>
 
 <!-- ═══════════════ LOGIN ═══════════════ -->
 <div id="login-screen">
@@ -666,7 +602,6 @@
       <div style="position:relative;">
         <button class="btn-logout" onclick="toggleMenuPerfil()" id="btn-perfil" style="display:flex;align-items:center;gap:6px;">
           <span id="topbar-user" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-          <span class="sync-dot" id="sync-dot" title="Sincronizado"></span>
           <span style="font-size:10px;opacity:0.8;">▼</span>
         </button>
         <div id="menu-perfil" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:white;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);min-width:180px;overflow:hidden;z-index:300;">
@@ -676,9 +611,6 @@
           </div>
           <button onclick="abrirModalSenha()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);">
             🔑 Alterar senha
-          </button>
-          <button id="btn-menu-github" onclick="abrirModalGitHub()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
-            ☁️ Config. GitHub
           </button>
           <button onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--danger);border-top:1px solid var(--border);">
             🚪 Sair
@@ -878,38 +810,6 @@
   </div>
 </div>
 
-<!-- MODAL GITHUB CONFIG (edição) -->
-<div class="modal-overlay" id="modal-github">
-  <div class="modal" style="max-height:90vh;overflow-y:auto;">
-    <h2>☁️ Configuração GitHub</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
-      Os dados de cada usuário são salvos como um arquivo JSON no repositório.<br>
-      <strong>Token</strong> fica somente neste dispositivo (localStorage).
-    </p>
-    <div class="form-group">
-      <label>Token do GitHub</label>
-      <input type="password" id="modal-gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
-    </div>
-    <div class="form-group">
-      <label>Usuário/Organização</label>
-      <input type="text" id="modal-gh-owner" />
-    </div>
-    <div class="form-group">
-      <label>Repositório</label>
-      <input type="text" id="modal-gh-repo" />
-    </div>
-    <div class="form-group">
-      <label>Branch</label>
-      <input type="text" id="modal-gh-branch" />
-    </div>
-    <div id="modal-github-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
-    <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="fecharModalGitHub()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarConfigGitHubModal()">Salvar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL ALTERAR SENHA -->
 <div class="modal-overlay" id="modal-senha">
   <div class="modal">
@@ -1007,7 +907,6 @@
     localStorage.removeItem('fc_session');
     currentUser = null;
     lancamentos = []; pessoas = []; categoriasCustom = { rec: [], pag: [] };
-    ghShas = {};
     document.getElementById('app-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-user').value = '';
@@ -1017,16 +916,10 @@
   }
 
   function verificarSessao() {
-    carregarGhConfig();
     const saved = localStorage.getItem('fc_session');
     if (saved) {
       currentUser = saved;
-      // Config do .env tem prioridade — nunca pede configuração ao usuário
-      if (!ghConfig && !configVemDoEnv() && !localStorage.getItem('fc_gh_skip')) {
-        mostrarTelaGitHub();
-      } else {
-        iniciarApp();
-      }
+      iniciarApp();
     }
   }
 
@@ -1034,17 +927,10 @@
   //  APP INIT
   // ══════════════════════════════════════════
   async function iniciarApp() {
-    document.getElementById('github-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'block';
     document.getElementById('topbar-user').textContent = currentUser.split('@')[0];
     document.getElementById('menu-username').textContent = currentUser;
-
-    // Esconde opção de configurar GitHub se as credenciais vêm do .env
-    if (configVemDoEnv()) {
-      const btnGh = document.getElementById('btn-menu-github');
-      if (btnGh) btnGh.style.display = 'none';
-    }
 
     await carregarLancamentos();
     setTab('lancamentos');
@@ -1054,140 +940,26 @@
   }
 
   // ══════════════════════════════════════════
-  //  GITHUB CONFIG
-  // ══════════════════════════════════════════
-  let ghConfig = null;    // { token, owner, repo, branch }
-  let ghShas   = {};      // { [filePath]: sha } — necessário para atualizar arquivos
-
-  function carregarGhConfig() {
-    // Prioridade 1: config.js gerado pelo Docker a partir do .env
-    if (window.APP_CONFIG && window.APP_CONFIG.ghToken) {
-      ghConfig = {
-        token:  window.APP_CONFIG.ghToken,
-        owner:  window.APP_CONFIG.ghOwner,
-        repo:   window.APP_CONFIG.ghRepo,
-        branch: window.APP_CONFIG.ghBranch || 'main',
-      };
-      return;
-    }
-    // Prioridade 2: config salva manualmente pelo usuário no localStorage
-    const s = localStorage.getItem('fc_gh_config');
-    ghConfig = s ? JSON.parse(s) : null;
-  }
-
-  function configVemDoEnv() {
-    return !!(window.APP_CONFIG && window.APP_CONFIG.ghToken);
-  }
-
-  function ghFilePath() {
-    // Sanitiza o email para nome de arquivo seguro
-    const safe = currentUser.replace('@', '_at_').replace(/[^a-zA-Z0-9_.-]/g, '_');
-    return `Fluxo Caixa Pessoal/data/${safe}.json`;
-  }
-
-  function setSyncStatus(status) {
-    // status: 'ok' | 'syncing' | 'error' | 'local'
-    const dot = document.getElementById('sync-dot');
-    if (!dot) return;
-    dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
-    const titles = { ok: 'Sincronizado com GitHub', syncing: 'Salvando...', error: 'Erro ao salvar no GitHub', local: 'Modo local (sem GitHub)' };
-    dot.title = titles[status] || '';
-    dot.style.background = status === 'ok' ? '#4caf50' : status === 'syncing' ? 'var(--warning)' : status === 'error' ? 'var(--danger)' : '#aaa';
-  }
-
-  async function ghGet(path) {
-    const { token, owner, repo, branch } = ghConfig;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`;
-    const r = await fetch(url, {
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
-    });
-    if (r.status === 404) return null;
-    if (!r.ok) throw new Error(`GitHub GET ${r.status}`);
-    const j = await r.json();
-    ghShas[path] = j.sha;
-    return JSON.parse(atob(j.content.replace(/\n/g, '')));
-  }
-
-  async function ghPut(path, data) {
-    const { token, owner, repo, branch } = ghConfig;
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-    const body = {
-      message: `dados: ${currentUser}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-      branch,
-    };
-    if (ghShas[path]) body.sha = ghShas[path];
-    const r = await fetch(url, {
-      method: 'PUT',
-      headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github.v3+json' },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error(`GitHub PUT ${r.status}`);
-    const j = await r.json();
-    ghShas[path] = j.content.sha;
-  }
-
-  function dadosUsuario() {
-    return { lancamentos, pessoas, categoriasCustom };
-  }
-
-  // ══════════════════════════════════════════
   //  DADOS
   // ══════════════════════════════════════════
   function chaveLocal(suffix) { return `fc_${suffix}_${currentUser}`; }
 
   async function carregarLancamentos() {
-    if (ghConfig) {
-      setSyncStatus('syncing');
-      try {
-        const dados = await ghGet(ghFilePath());
-        if (dados) {
-          lancamentos       = dados.lancamentos       || [];
-          pessoas           = dados.pessoas           || [];
-          categoriasCustom  = dados.categoriasCustom  || { rec: [], pag: [] };
-        } else {
-          lancamentos = []; pessoas = []; categoriasCustom = { rec: [], pag: [] };
-        }
-        setSyncStatus('ok');
-      } catch (e) {
-        setSyncStatus('error');
-        toast('⚠️ Erro ao carregar do GitHub. Usando dados locais.');
-        carregarLocal();
-      }
-    } else {
-      carregarLocal();
-      setSyncStatus('local');
-    }
-    atualizarSaldo();
-  }
-
-  function carregarLocal() {
     lancamentos      = JSON.parse(localStorage.getItem(chaveLocal('lanc'))   || '[]');
     pessoas          = JSON.parse(localStorage.getItem(chaveLocal('pessoas')) || '[]');
     categoriasCustom = JSON.parse(localStorage.getItem(chaveLocal('cat'))    || '{"rec":[],"pag":[]}');
+    atualizarSaldo();
   }
 
   async function salvarLancamentos() {
     atualizarSaldo();
-    await sincronizar();
+    sincronizar();
   }
 
-  async function sincronizar() {
-    // Sempre salva localmente como backup
+  function sincronizar() {
     localStorage.setItem(chaveLocal('lanc'),    JSON.stringify(lancamentos));
     localStorage.setItem(chaveLocal('pessoas'), JSON.stringify(pessoas));
     localStorage.setItem(chaveLocal('cat'),     JSON.stringify(categoriasCustom));
-
-    if (!ghConfig) { setSyncStatus('local'); return; }
-
-    setSyncStatus('syncing');
-    try {
-      await ghPut(ghFilePath(), dadosUsuario());
-      setSyncStatus('ok');
-    } catch (e) {
-      setSyncStatus('error');
-      toast('⚠️ Dados salvos localmente. Falha na sincronização com GitHub.');
-    }
   }
 
   // ══════════════════════════════════════════
@@ -1633,108 +1405,6 @@
     if (e.key === 'Enter') salvarPessoa();
   });
 
-  // ══════════════════════════════════════════
-  //  GITHUB CONFIG — TELA E MODAL
-  // ══════════════════════════════════════════
-  function mostrarTelaGitHub() {
-    document.getElementById('github-screen').style.display = 'flex';
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'none';
-  }
-
-  async function salvarConfigGitHub() {
-    const token  = document.getElementById('gh-token').value.trim();
-    const owner  = document.getElementById('gh-owner').value.trim();
-    const repo   = document.getElementById('gh-repo').value.trim();
-    const branch = document.getElementById('gh-branch').value.trim() || 'main';
-    const errEl  = document.getElementById('github-error');
-    const btn    = document.getElementById('btn-gh-salvar');
-
-    if (!token || !owner || !repo) { errEl.textContent = 'Preencha todos os campos obrigatórios.'; return; }
-
-    errEl.textContent = '';
-    btn.textContent = 'Verificando...';
-    btn.disabled = true;
-
-    // Testa se o token tem acesso ao repositório
-    try {
-      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
-      });
-      if (!r.ok) throw new Error(r.status === 404 ? 'Repositório não encontrado.' : `Erro ${r.status} ao acessar o repositório.`);
-    } catch (e) {
-      errEl.textContent = '❌ ' + e.message;
-      btn.textContent = 'Conectar e continuar'; btn.disabled = false; return;
-    }
-
-    ghConfig = { token, owner, repo, branch };
-    localStorage.setItem('fc_gh_config', JSON.stringify(ghConfig));
-    localStorage.removeItem('fc_gh_skip');
-    btn.textContent = 'Conectar e continuar'; btn.disabled = false;
-    iniciarApp();
-  }
-
-  function usarSemGitHub() {
-    localStorage.setItem('fc_gh_skip', '1');
-    ghConfig = null;
-    iniciarApp();
-  }
-
-  function abrirModalGitHub() {
-    document.getElementById('menu-perfil').style.display = 'none';
-    const cfg = ghConfig || {};
-    document.getElementById('modal-gh-token').value  = cfg.token  || '';
-    document.getElementById('modal-gh-owner').value  = cfg.owner  || '';
-    document.getElementById('modal-gh-repo').value   = cfg.repo   || '';
-    document.getElementById('modal-gh-branch').value = cfg.branch || 'main';
-    document.getElementById('modal-github-status').textContent = '';
-    document.getElementById('modal-github').classList.add('open');
-  }
-
-  function fecharModalGitHub() {
-    document.getElementById('modal-github').classList.remove('open');
-  }
-
-  async function salvarConfigGitHubModal() {
-    const token  = document.getElementById('modal-gh-token').value.trim();
-    const owner  = document.getElementById('modal-gh-owner').value.trim();
-    const repo   = document.getElementById('modal-gh-repo').value.trim();
-    const branch = document.getElementById('modal-gh-branch').value.trim() || 'main';
-    const statusEl = document.getElementById('modal-github-status');
-
-    if (!token || !owner || !repo) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Preencha todos os campos.'; return; }
-
-    statusEl.style.color = 'var(--text-muted)';
-    statusEl.textContent = 'Verificando acesso...';
-
-    try {
-      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
-      });
-      if (!r.ok) throw new Error(r.status === 404 ? 'Repositório não encontrado.' : `Erro ${r.status}.`);
-    } catch (e) {
-      statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ ' + e.message; return;
-    }
-
-    ghConfig = { token, owner, repo, branch };
-    localStorage.setItem('fc_gh_config', JSON.stringify(ghConfig));
-    localStorage.removeItem('fc_gh_skip');
-    statusEl.style.color = 'var(--success)';
-    statusEl.textContent = '✅ Conectado! Recarregando dados...';
-    ghShas = {};
-    setTimeout(async () => {
-      await carregarLancamentos();
-      fecharModalGitHub();
-      renderLancamentos();
-      toast('✅ GitHub configurado com sucesso!');
-    }, 800);
-  }
-
-  document.getElementById('modal-github').addEventListener('click', function(e) {
-    if (e.target === this) fecharModalGitHub();
-  });
-
-  // também precisa funcionar no login
   function login() {
     const email = document.getElementById('login-user').value.trim().toLowerCase();
     const pass  = document.getElementById('login-pass').value;
@@ -1752,13 +1422,7 @@
     }
     currentUser = email;
     localStorage.setItem('fc_session', email);
-
-    carregarGhConfig();
-    if (!ghConfig && !configVemDoEnv() && !localStorage.getItem('fc_gh_skip')) {
-      mostrarTelaGitHub();
-    } else {
-      iniciarApp();
-    }
+    iniciarApp();
   }
 
   // ══════════════════════════════════════════
