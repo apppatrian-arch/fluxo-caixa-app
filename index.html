@@ -880,7 +880,7 @@
   let filtroAtual = 'todos';
   let deletandoId = null;
 
-  const CATEGORIAS_PADRAO = {
+  const CATEGORIAS_SISTEMA = {
     rec: ['Vendas', 'Serviços', 'Salário', 'Transferência', 'Outros'],
     pag: ['Fornecedor', 'Aluguel', 'Salário', 'Impostos', 'Utilidades', 'Outros'],
   };
@@ -889,14 +889,31 @@
   let editandoPessoaId = null;
   let deletandoPessoaId = null;
 
-  let categoriasCustom = { rec: [], pag: [] };
+  // categoriasCustom.rec/pag = lista de nomes personalizados
+  // categoriasPadrao.rec/pag = lista das que o usuário quer como padrão (inclui sistema + promovidas)
+  // categoriasOcultas.rec/pag = padrões do sistema que o usuário ocultou
+  let categoriasCustom   = { rec: [], pag: [] };
+  let categoriasOcultas  = { rec: [], pag: [] };
+  let categoriasPromovidas = { rec: [], pag: [] }; // custom promovidas a padrão
   let catTabAtual = 'rec';
 
   function carregarCategorias() { /* carregado junto em carregarLancamentos() via GitHub */ }
   function salvarCategorias()   { sincronizar(); }
 
+  function categoriasPadrao(tipo) {
+    const ocultas = categoriasOcultas[tipo] || [];
+    const promovidas = categoriasPromovidas[tipo] || [];
+    const sistema = CATEGORIAS_SISTEMA[tipo].filter(c => !ocultas.includes(c));
+    return [...sistema, ...promovidas];
+  }
+
+  function categoriasNormais(tipo) {
+    const promovidas = categoriasPromovidas[tipo] || [];
+    return (categoriasCustom[tipo] || []).filter(c => !promovidas.includes(c));
+  }
+
   function todasCategorias(tipo) {
-    return [...CATEGORIAS_PADRAO[tipo], ...categoriasCustom[tipo]];
+    return [...categoriasPadrao(tipo), ...categoriasNormais(tipo)];
   }
 
   // ══════════════════════════════════════════
@@ -906,7 +923,10 @@
   function logout() {
     localStorage.removeItem('fc_session');
     currentUser = null;
-    lancamentos = []; pessoas = []; categoriasCustom = { rec: [], pag: [] };
+    lancamentos = []; pessoas = [];
+    categoriasCustom = { rec: [], pag: [] };
+    categoriasOcultas = { rec: [], pag: [] };
+    categoriasPromovidas = { rec: [], pag: [] };
     document.getElementById('app-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('login-user').value = '';
@@ -945,9 +965,11 @@
   function chaveLocal(suffix) { return `fc_${suffix}_${currentUser}`; }
 
   async function carregarLancamentos() {
-    lancamentos      = JSON.parse(localStorage.getItem(chaveLocal('lanc'))   || '[]');
-    pessoas          = JSON.parse(localStorage.getItem(chaveLocal('pessoas')) || '[]');
-    categoriasCustom = JSON.parse(localStorage.getItem(chaveLocal('cat'))    || '{"rec":[],"pag":[]}');
+    lancamentos          = JSON.parse(localStorage.getItem(chaveLocal('lanc'))       || '[]');
+    pessoas              = JSON.parse(localStorage.getItem(chaveLocal('pessoas'))    || '[]');
+    categoriasCustom     = JSON.parse(localStorage.getItem(chaveLocal('cat'))        || '{"rec":[],"pag":[]}');
+    categoriasOcultas    = JSON.parse(localStorage.getItem(chaveLocal('cat-ocult'))  || '{"rec":[],"pag":[]}');
+    categoriasPromovidas = JSON.parse(localStorage.getItem(chaveLocal('cat-prom'))   || '{"rec":[],"pag":[]}');
     atualizarSaldo();
   }
 
@@ -957,9 +979,11 @@
   }
 
   function sincronizar() {
-    localStorage.setItem(chaveLocal('lanc'),    JSON.stringify(lancamentos));
-    localStorage.setItem(chaveLocal('pessoas'), JSON.stringify(pessoas));
-    localStorage.setItem(chaveLocal('cat'),     JSON.stringify(categoriasCustom));
+    localStorage.setItem(chaveLocal('lanc'),       JSON.stringify(lancamentos));
+    localStorage.setItem(chaveLocal('pessoas'),    JSON.stringify(pessoas));
+    localStorage.setItem(chaveLocal('cat'),        JSON.stringify(categoriasCustom));
+    localStorage.setItem(chaveLocal('cat-ocult'),  JSON.stringify(categoriasOcultas));
+    localStorage.setItem(chaveLocal('cat-prom'),   JSON.stringify(categoriasPromovidas));
   }
 
   // ══════════════════════════════════════════
@@ -1591,35 +1615,97 @@
   }
 
   function renderCatLista() {
-    const el = document.getElementById('cat-lista');
-    const padrao = CATEGORIAS_PADRAO[catTabAtual];
-    const custom = categoriasCustom[catTabAtual];
+    const el      = document.getElementById('cat-lista');
+    const tipo    = catTabAtual;
+    const ocultas = categoriasOcultas[tipo]    || [];
+    const prom    = categoriasPromovidas[tipo] || [];
+    const sistema = CATEGORIAS_SISTEMA[tipo];
+    const custom  = categoriasCustom[tipo]     || [];
+
+    const btnBase = 'background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:4px;font-size:13px;';
 
     let html = '';
 
-    if (padrao.length) {
+    // ── Seção PADRÃO (sistema visíveis + custom promovidas) ──
+    const sistemaVisiveis = sistema.filter(c => !ocultas.includes(c));
+    const linhasPadrao = [
+      ...sistemaVisiveis.map(c => `
+        <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-size:14px;">${esc(c)}</span>
+          <span style="font-size:11px;color:var(--text-muted);background:var(--bg);padding:2px 7px;border-radius:10px;margin-right:6px;">padrão</span>
+          <button onclick="ocultarCategoriaSistema('${esc(c)}')" style="${btnBase}color:var(--danger);" title="Excluir do padrão">🗑</button>
+        </div>`),
+      ...prom.map((c, i) => `
+        <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-size:14px;">${esc(c)}</span>
+          <span style="font-size:11px;color:var(--primary);background:#e8f0fe;padding:2px 7px;border-radius:10px;margin-right:6px;">padrão</span>
+          <button onclick="rebaixarCategoria(${i})" style="${btnBase}color:var(--text-muted);" title="Remover do padrão">↓</button>
+          <button onclick="removerCategoriaCustom('${esc(c)}')" style="${btnBase}color:var(--danger);" title="Excluir">🗑</button>
+        </div>`),
+    ];
+
+    if (linhasPadrao.length) {
       html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Padrão</div>`;
-      html += padrao.map(c => `
-        <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
-          <span style="flex:1;font-size:14px;">${esc(c)}</span>
-          <span style="font-size:11px;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:10px;">padrão</span>
-        </div>`).join('');
+      html += linhasPadrao.join('');
     }
 
-    if (custom.length) {
+    // ── Seção PERSONALIZADAS (não promovidas) ──
+    const normais = custom.filter(c => !prom.includes(c));
+    if (normais.length) {
       html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">Personalizadas</div>`;
-      html += custom.map((c, i) => `
+      html += normais.map(c => `
         <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
           <span style="flex:1;font-size:14px;">${esc(c)}</span>
-          <button onclick="removerCategoria(${i})" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--text-muted);padding:4px 6px;border-radius:4px;" title="Remover">✕</button>
+          <button onclick="promoverCategoria('${esc(c)}')" style="${btnBase}color:var(--primary);" title="Tornar padrão">⭐</button>
+          <button onclick="removerCategoriaCustom('${esc(c)}')" style="${btnBase}color:var(--danger);" title="Excluir">🗑</button>
         </div>`).join('');
     }
 
-    if (!custom.length && !padrao.length) {
+    // ── Seção OCULTAS (sistema) ──
+    if (ocultas.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">Ocultas</div>`;
+      html += ocultas.map(c => `
+        <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);opacity:0.5;">
+          <span style="flex:1;font-size:14px;">${esc(c)}</span>
+          <button onclick="restaurarCategoriaSistema('${esc(c)}')" style="${btnBase}color:var(--success);" title="Restaurar">↩</button>
+        </div>`).join('');
+    }
+
+    if (!linhasPadrao.length && !normais.length) {
       html = `<div class="empty-state"><span class="icon">🏷</span>Sem categorias.</div>`;
     }
 
     el.innerHTML = html;
+  }
+
+  function ocultarCategoriaSistema(nome) {
+    if (!categoriasOcultas[catTabAtual].includes(nome))
+      categoriasOcultas[catTabAtual].push(nome);
+    sincronizar(); renderCatLista();
+  }
+
+  function restaurarCategoriaSistema(nome) {
+    categoriasOcultas[catTabAtual] = categoriasOcultas[catTabAtual].filter(c => c !== nome);
+    sincronizar(); renderCatLista();
+  }
+
+  function promoverCategoria(nome) {
+    if (!categoriasPromovidas[catTabAtual].includes(nome))
+      categoriasPromovidas[catTabAtual].push(nome);
+    sincronizar(); renderCatLista();
+    toast('⭐ Categoria movida para Padrão!');
+  }
+
+  function rebaixarCategoria(idx) {
+    categoriasPromovidas[catTabAtual].splice(idx, 1);
+    sincronizar(); renderCatLista();
+  }
+
+  function removerCategoriaCustom(nome) {
+    categoriasCustom[catTabAtual]     = categoriasCustom[catTabAtual].filter(c => c !== nome);
+    categoriasPromovidas[catTabAtual] = categoriasPromovidas[catTabAtual].filter(c => c !== nome);
+    sincronizar(); renderCatLista();
+    toast('Categoria removida.');
   }
 
   function adicionarCategoria() {
@@ -1639,12 +1725,6 @@
     toast('✅ Categoria criada!');
   }
 
-  function removerCategoria(idx) {
-    categoriasCustom[catTabAtual].splice(idx, 1);
-    salvarCategorias();
-    renderCatLista();
-    toast('Categoria removida.');
-  }
 
   document.getElementById('modal-categorias').addEventListener('click', function(e) {
     if (e.target === this) fecharModalCategorias();
