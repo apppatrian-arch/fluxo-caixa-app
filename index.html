@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Fluxo de Caixa</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1a73e8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fluxo Caixa" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1558b0;
+      --success: #0f9d58;
+      --danger: #d93025;
+      --warning: #f4b400;
+      --bg: #f1f3f4;
+      --surface: #ffffff;
+      --surface2: #f8f9fa;
+      --text: #202124;
+      --text-muted: #5f6368;
+      --border: #dadce0;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      background: linear-gradient(135deg, #1a73e8 0%, #0f5dbf 100%);
+    }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo .icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .login-logo h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .login-logo p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      text-decoration: none;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-sm {
+      padding: 7px 12px;
+      font-size: 13px;
+      width: auto;
+      border-radius: 6px;
+    }
+
+    #login-error {
+      color: var(--danger);
+      font-size: 13px;
+      text-align: center;
+      margin-top: 8px;
+      min-height: 18px;
+    }
+
+    /* ── APP ── */
+    #app-screen { display: none; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--primary);
+      color: white;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .topbar h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .topbar .user-info {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .content {
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── SALDO CARD ── */
+    .saldo-card {
+      background: linear-gradient(135deg, #1a73e8 0%, #0f5dbf 100%);
+      color: white;
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .saldo-label {
+      font-size: 13px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .saldo-valor {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .saldo-detalhe {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .saldo-item {
+      flex: 1;
+    }
+
+    .saldo-item-label {
+      font-size: 11px;
+      opacity: 0.75;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .saldo-item-valor {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 6px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+      color: var(--text-muted);
+      border: none;
+      background: transparent;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* ── FORM CARD ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .tipo-btns {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tipo-btn {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .tipo-btn.active-rec {
+      border-color: var(--success);
+      background: #e6f4ea;
+      color: var(--success);
+    }
+
+    .tipo-btn.active-pag {
+      border-color: var(--danger);
+      background: #fce8e6;
+      color: var(--danger);
+    }
+
+    /* ── LISTA DE LANÇAMENTOS ── */
+    .lancamento-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lancamento-item:last-child { border-bottom: none; }
+
+    .lancamento-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .lancamento-icon.rec { background: #e6f4ea; }
+    .lancamento-icon.pag { background: #fce8e6; }
+
+    .lancamento-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .lancamento-origem {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lancamento-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .lancamento-valor {
+      font-size: 15px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .lancamento-valor.rec { color: var(--success); }
+    .lancamento-valor.pag { color: var(--danger); }
+
+    .btn-del {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-del:hover { color: var(--danger); background: #fce8e6; }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 0;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon { font-size: 40px; display: block; margin-bottom: 8px; }
+
+    /* ── FILTROS ── */
+    .filtros {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filtro-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .filtro-btn.active {
+      border-color: var(--primary);
+      background: #e8f0fe;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #323232;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal h2 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    /* ── PERIODO SELECTOR ── */
+    .periodo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .periodo-wrap select {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .periodo-wrap select:focus { outline: none; }
+
+    /* ── TAGS DE TIPO ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-rec { background: #e6f4ea; color: var(--success); }
+    .badge-pag { background: #fce8e6; color: var(--danger); }
+
+    /* ── SYNC ── */
+    .sync-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4caf50; display: inline-block; margin-left: 4px;
+    }
+    .sync-dot.syncing { background: var(--warning); animation: pulse 1s infinite; }
+    .sync-dot.error   { background: var(--danger); }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── TELA GITHUB CONFIG ── */
+    #github-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      background: linear-gradient(135deg, #1a73e8 0%, #0f5dbf 100%);
+    }
+    .github-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .github-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .github-card p  { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+    .github-steps { background: var(--bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; }
+    .github-steps li { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; line-height: 1.5; }
+    #github-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ GITHUB CONFIG ═══════════════ -->
+<div id="github-screen">
+  <div class="github-card">
+    <div style="text-align:center;margin-bottom:20px;">
+      <span style="font-size:40px;">⚙️</span>
+      <h2 style="margin-top:8px;">Configurar GitHub</h2>
+      <p>Os dados do app serão salvos no seu repositório GitHub. Configure uma vez e use em qualquer dispositivo.</p>
+    </div>
+
+    <ol class="github-steps">
+      <li>Acesse <strong>github.com → Settings → Developer Settings → Personal access tokens</strong></li>
+      <li>Clique em <strong>Generate new token (classic)</strong></li>
+      <li>Marque a permissão <strong>repo</strong> (acesso completo)</li>
+      <li>Copie o token gerado e cole abaixo</li>
+    </ol>
+
+    <div class="form-group">
+      <label>Token do GitHub</label>
+      <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+    </div>
+    <div class="form-group">
+      <label>Usuário/Organização do GitHub</label>
+      <input type="text" id="gh-owner" placeholder="ex: joaosilva" />
+    </div>
+    <div class="form-group">
+      <label>Nome do Repositório</label>
+      <input type="text" id="gh-repo" placeholder="ex: dashboard.diretoria" />
+    </div>
+    <div class="form-group">
+      <label>Branch</label>
+      <input type="text" id="gh-branch" placeholder="main" value="main" />
+    </div>
+
+    <div id="github-error"></div>
+    <button class="btn btn-primary" id="btn-gh-salvar" onclick="salvarConfigGitHub()">Conectar e continuar</button>
+    <button class="btn btn-ghost" style="margin-top:8px;" onclick="usarSemGitHub()">Usar sem GitHub (dados locais)</button>
+  </div>
+</div>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="icon">💰</span>
+      <h1>Fluxo de Caixa</h1>
+      <p>Controle seus recebimentos e pagamentos</p>
+    </div>
+    <div class="form-group">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="seu usuário" autocomplete="username" />
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="sua senha" autocomplete="current-password" />
+    </div>
+    <button class="btn btn-primary" onclick="login()">Entrar</button>
+    <div id="login-error"></div>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:16px;">
+      Primeiro acesso? Use qualquer usuário e senha para criar sua conta.
+    </p>
+  </div>
+</div>
+
+<!-- ═══════════════ APP ═══════════════ -->
+<div id="app-screen">
+  <div class="topbar">
+    <div>
+      <div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;">Fluxo de Caixa</div>
+      <h1 id="topbar-title">Dashboard</h1>
+    </div>
+    <div class="topbar-right">
+      <div style="position:relative;">
+        <button class="btn-logout" onclick="toggleMenuPerfil()" id="btn-perfil" style="display:flex;align-items:center;gap:6px;">
+          <span id="topbar-user" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+          <span class="sync-dot" id="sync-dot" title="Sincronizado"></span>
+          <span style="font-size:10px;opacity:0.8;">▼</span>
+        </button>
+        <div id="menu-perfil" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:white;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);min-width:180px;overflow:hidden;z-index:300;">
+          <div style="padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--border);">
+            <div style="font-size:12px;color:var(--text-muted);">Logado como</div>
+            <div id="menu-username" style="font-size:14px;font-weight:700;color:var(--text);margin-top:2px;"></div>
+          </div>
+          <button onclick="abrirModalSenha()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);">
+            🔑 Alterar senha
+          </button>
+          <button onclick="abrirModalGitHub()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
+            ☁️ Config. GitHub
+          </button>
+          <button onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--danger);border-top:1px solid var(--border);">
+            🚪 Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- SALDO -->
+    <div class="saldo-card">
+      <div class="saldo-label">Saldo em Caixa</div>
+      <div class="saldo-valor" id="saldo-total">R$ 0,00</div>
+      <div class="saldo-detalhe">
+        <div class="saldo-item">
+          <div class="saldo-item-label">↑ Recebimentos</div>
+          <div class="saldo-item-valor" id="saldo-rec">R$ 0,00</div>
+        </div>
+        <div class="saldo-item">
+          <div class="saldo-item-label">↓ Pagamentos</div>
+          <div class="saldo-item-valor" id="saldo-pag">R$ 0,00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" id="tab-lancamentos" onclick="setTab('lancamentos')">Lançamentos</button>
+      <button class="tab" id="tab-novo" onclick="setTab('novo')">+ Novo</button>
+      <button class="tab" id="tab-pessoas" onclick="setTab('pessoas')">Pessoas</button>
+      <button class="tab" id="tab-historico" onclick="setTab('historico')">Histórico</button>
+    </div>
+
+    <!-- ── PAINEL LANÇAMENTOS ── -->
+    <div id="painel-lancamentos">
+      <div class="periodo-wrap">
+        <span style="font-size:16px;">📅</span>
+        <select id="filtro-periodo" onchange="renderLancamentos()">
+          <option value="hoje">Hoje</option>
+          <option value="semana">Esta semana</option>
+          <option value="mes" selected>Este mês</option>
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="filtros">
+          <button class="filtro-btn active" id="filtro-todos" onclick="setFiltro('todos')">Todos</button>
+          <button class="filtro-btn" id="filtro-rec" onclick="setFiltro('rec')">Recebimentos</button>
+          <button class="filtro-btn" id="filtro-pag" onclick="setFiltro('pag')">Pagamentos</button>
+        </div>
+        <div id="lista-lancamentos"></div>
+      </div>
+    </div>
+
+    <!-- ── PAINEL NOVO ── -->
+    <div id="painel-novo" style="display:none;">
+      <div class="card">
+        <h2>Novo Lançamento</h2>
+
+        <div class="tipo-btns">
+          <button class="tipo-btn active-rec" id="tipo-rec" onclick="setTipo('rec')">⬆ Recebimento</button>
+          <button class="tipo-btn" id="tipo-pag" onclick="setTipo('pag')">⬇ Pagamento</button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="novo-data" />
+          </div>
+          <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" id="novo-valor" placeholder="0,00" step="0.01" min="0.01" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label id="label-origem">Pessoa</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="novo-pessoa" style="flex:1;"></select>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalNovaPessoa()" title="Cadastrar pessoa" style="flex-shrink:0;padding:11px 12px;">+</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Descrição (opcional)</label>
+          <input type="text" id="novo-descricao" placeholder="Detalhes adicionais..." />
+        </div>
+
+        <div class="form-group">
+          <label>Categoria</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="novo-categoria" style="flex:1;"></select>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalCategorias()" title="Gerenciar categorias" style="flex-shrink:0;padding:11px 12px;">⚙</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-salvar" onclick="salvarLancamento()">Salvar Lançamento</button>
+      </div>
+    </div>
+
+    <!-- ── PAINEL PESSOAS ── -->
+    <div id="painel-pessoas" style="display:none;">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h2 style="margin:0;">Pessoas cadastradas</h2>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalNovaPessoa()">+ Nova pessoa</button>
+        </div>
+        <input type="text" id="busca-pessoa" oninput="renderPessoas()" placeholder="🔍  Buscar pelo nome..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px;" />
+        <div id="lista-pessoas"></div>
+      </div>
+    </div>
+
+    <!-- ── PAINEL HISTÓRICO ── -->
+    <div id="painel-historico" style="display:none;">
+
+      <!-- Seletor de mês para pizza -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h2 style="margin:0;font-size:15px;">Distribuição do Mês</h2>
+          <select id="hist-mes-sel" onchange="renderHistorico()" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600;color:var(--text);background:var(--bg);"></select>
+        </div>
+        <div style="position:relative;max-width:240px;margin:0 auto;">
+          <canvas id="chart-pizza"></canvas>
+        </div>
+        <div id="pizza-legenda" style="display:flex;justify-content:center;gap:20px;margin-top:14px;font-size:13px;font-weight:600;"></div>
+      </div>
+
+      <!-- Gráfico de barras — todos os meses -->
+      <div class="card" style="margin-bottom:16px;">
+        <h2 style="margin-bottom:14px;font-size:15px;">Recebimentos × Pagamentos por Mês</h2>
+        <div style="position:relative;height:220px;">
+          <canvas id="chart-barras"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela resumo -->
+      <div class="card">
+        <h2 style="margin-bottom:8px;font-size:15px;">Resumo mensal</h2>
+        <div id="historico-lista"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL PESSOA -->
+<div class="modal-overlay" id="modal-pessoa">
+  <div class="modal">
+    <h2 id="modal-pessoa-titulo">Nova Pessoa</h2>
+    <div class="form-group">
+      <label>Nome <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="pessoa-nome" placeholder="Nome completo" maxlength="80" />
+    </div>
+    <div class="form-group">
+      <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
+      <input type="tel" id="pessoa-tel" placeholder="(00) 00000-0000" maxlength="20" />
+    </div>
+    <div id="pessoa-erro" style="color:var(--danger);font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModalPessoa()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPessoa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUIR PESSOA -->
+<div class="modal-overlay" id="modal-del-pessoa">
+  <div class="modal">
+    <h2>Excluir pessoa?</h2>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">Esta ação não pode ser desfeita.</p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModalDelPessoa()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarDelPessoa()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GITHUB CONFIG (edição) -->
+<div class="modal-overlay" id="modal-github">
+  <div class="modal" style="max-height:90vh;overflow-y:auto;">
+    <h2>☁️ Configuração GitHub</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
+      Os dados de cada usuário são salvos como um arquivo JSON no repositório.<br>
+      <strong>Token</strong> fica somente neste dispositivo (localStorage).
+    </p>
+    <div class="form-group">
+      <label>Token do GitHub</label>
+      <input type="password" id="modal-gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+    </div>
+    <div class="form-group">
+      <label>Usuário/Organização</label>
+      <input type="text" id="modal-gh-owner" />
+    </div>
+    <div class="form-group">
+      <label>Repositório</label>
+      <input type="text" id="modal-gh-repo" />
+    </div>
+    <div class="form-group">
+      <label>Branch</label>
+      <input type="text" id="modal-gh-branch" />
+    </div>
+    <div id="modal-github-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModalGitHub()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarConfigGitHubModal()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALTERAR SENHA -->
+<div class="modal-overlay" id="modal-senha">
+  <div class="modal">
+    <h2>Alterar Senha</h2>
+    <div class="form-group">
+      <label>Senha atual</label>
+      <input type="password" id="senha-atual" placeholder="Digite a senha atual" />
+    </div>
+    <div class="form-group">
+      <label>Nova senha</label>
+      <input type="password" id="senha-nova" placeholder="Digite a nova senha" />
+    </div>
+    <div class="form-group">
+      <label>Confirmar nova senha</label>
+      <input type="password" id="senha-confirma" placeholder="Repita a nova senha" />
+    </div>
+    <div id="senha-erro" style="color:var(--danger);font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModalSenha()">Cancelar</button>
+      <button class="btn btn-primary" onclick="alterarSenha()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CATEGORIAS -->
+<div class="modal-overlay" id="modal-categorias">
+  <div class="modal">
+    <h2>Gerenciar Categorias</h2>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="tipo-btn active-rec" id="cat-tab-rec" onclick="setCatTab('rec')" style="flex:1;padding:8px;">⬆ Recebimento</button>
+      <button class="tipo-btn" id="cat-tab-pag" onclick="setCatTab('pag')" style="flex:1;padding:8px;">⬇ Pagamento</button>
+    </div>
+
+    <div id="cat-lista" style="margin-bottom:16px;max-height:220px;overflow-y:auto;"></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <input type="text" id="nova-cat-input" placeholder="Nome da nova categoria..." style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;" maxlength="40" />
+      <button class="btn btn-primary btn-sm" onclick="adicionarCategoria()" style="flex-shrink:0;">Adicionar</button>
+    </div>
+
+    <button class="btn btn-ghost" onclick="fecharModalCategorias()">Fechar</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO -->
+<div class="modal-overlay" id="modal-del">
+  <div class="modal">
+    <h2>Excluir lançamento?</h2>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">Esta ação não pode ser desfeita.</p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarDelecao()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  // ══════════════════════════════════════════
+  //  ESTADO
+  // ══════════════════════════════════════════
+  let currentUser = null;
+  let lancamentos = [];
+  let tipoAtual = 'rec';
+  let filtroAtual = 'todos';
+  let deletandoId = null;
+
+  const CATEGORIAS_PADRAO = {
+    rec: ['Vendas', 'Serviços', 'Salário', 'Transferência', 'Outros'],
+    pag: ['Fornecedor', 'Aluguel', 'Salário', 'Impostos', 'Utilidades', 'Outros'],
+  };
+
+  let pessoas = [];
+  let editandoPessoaId = null;
+  let deletandoPessoaId = null;
+
+  let categoriasCustom = { rec: [], pag: [] };
+  let catTabAtual = 'rec';
+
+  function carregarCategorias() { /* carregado junto em carregarLancamentos() via GitHub */ }
+  function salvarCategorias()   { sincronizar(); }
+
+  function todasCategorias(tipo) {
+    return [...CATEGORIAS_PADRAO[tipo], ...categoriasCustom[tipo]];
+  }
+
+  // ══════════════════════════════════════════
+  //  AUTH — login() definido abaixo junto com GitHub config
+  // ══════════════════════════════════════════
+
+  function logout() {
+    localStorage.removeItem('fc_session');
+    currentUser = null;
+    lancamentos = [];
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-user').value = '';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-error').textContent = '';
+  }
+
+  function verificarSessao() {
+    carregarGhConfig();
+    const saved = localStorage.getItem('fc_session');
+    if (saved) {
+      currentUser = saved;
+      // Se nunca configurou GitHub, mostra tela de configuração
+      if (!ghConfig && !localStorage.getItem('fc_gh_skip')) {
+        mostrarTelaGitHub();
+      } else {
+        iniciarApp();
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  APP INIT
+  // ══════════════════════════════════════════
+  async function iniciarApp() {
+    document.getElementById('github-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('topbar-user').textContent = currentUser;
+    document.getElementById('menu-username').textContent = currentUser;
+
+    await carregarLancamentos(); // carrega tudo (lancamentos + pessoas + categorias) do GitHub ou local
+    setTab('lancamentos');
+
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('novo-data').value = hoje;
+  }
+
+  // ══════════════════════════════════════════
+  //  GITHUB CONFIG
+  // ══════════════════════════════════════════
+  let ghConfig = null;    // { token, owner, repo, branch }
+  let ghShas   = {};      // { [filePath]: sha } — necessário para atualizar arquivos
+
+  function carregarGhConfig() {
+    const s = localStorage.getItem('fc_gh_config');
+    ghConfig = s ? JSON.parse(s) : null;
+  }
+
+  function ghFilePath() {
+    return `Fluxo Caixa Pessoal/data/${currentUser}.json`;
+  }
+
+  function setSyncStatus(status) {
+    // status: 'ok' | 'syncing' | 'error' | 'local'
+    const dot = document.getElementById('sync-dot');
+    if (!dot) return;
+    dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
+    const titles = { ok: 'Sincronizado com GitHub', syncing: 'Salvando...', error: 'Erro ao salvar no GitHub', local: 'Modo local (sem GitHub)' };
+    dot.title = titles[status] || '';
+    dot.style.background = status === 'ok' ? '#4caf50' : status === 'syncing' ? 'var(--warning)' : status === 'error' ? 'var(--danger)' : '#aaa';
+  }
+
+  async function ghGet(path) {
+    const { token, owner, repo, branch } = ghConfig;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`;
+    const r = await fetch(url, {
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`GitHub GET ${r.status}`);
+    const j = await r.json();
+    ghShas[path] = j.sha;
+    return JSON.parse(atob(j.content.replace(/\n/g, '')));
+  }
+
+  async function ghPut(path, data) {
+    const { token, owner, repo, branch } = ghConfig;
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+    const body = {
+      message: `dados: ${currentUser}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+      branch,
+    };
+    if (ghShas[path]) body.sha = ghShas[path];
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github.v3+json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(`GitHub PUT ${r.status}`);
+    const j = await r.json();
+    ghShas[path] = j.content.sha;
+  }
+
+  function dadosUsuario() {
+    return { lancamentos, pessoas, categoriasCustom };
+  }
+
+  // ══════════════════════════════════════════
+  //  DADOS
+  // ══════════════════════════════════════════
+  function chaveLocal(suffix) { return `fc_${suffix}_${currentUser}`; }
+
+  async function carregarLancamentos() {
+    if (ghConfig) {
+      setSyncStatus('syncing');
+      try {
+        const dados = await ghGet(ghFilePath());
+        if (dados) {
+          lancamentos       = dados.lancamentos       || [];
+          pessoas           = dados.pessoas           || [];
+          categoriasCustom  = dados.categoriasCustom  || { rec: [], pag: [] };
+        } else {
+          lancamentos = []; pessoas = []; categoriasCustom = { rec: [], pag: [] };
+        }
+        setSyncStatus('ok');
+      } catch (e) {
+        setSyncStatus('error');
+        toast('⚠️ Erro ao carregar do GitHub. Usando dados locais.');
+        carregarLocal();
+      }
+    } else {
+      carregarLocal();
+      setSyncStatus('local');
+    }
+    atualizarSaldo();
+  }
+
+  function carregarLocal() {
+    lancamentos      = JSON.parse(localStorage.getItem(chaveLocal('lanc'))   || '[]');
+    pessoas          = JSON.parse(localStorage.getItem(chaveLocal('pessoas')) || '[]');
+    categoriasCustom = JSON.parse(localStorage.getItem(chaveLocal('cat'))    || '{"rec":[],"pag":[]}');
+  }
+
+  async function salvarLancamentos() {
+    atualizarSaldo();
+    await sincronizar();
+  }
+
+  async function sincronizar() {
+    // Sempre salva localmente como backup
+    localStorage.setItem(chaveLocal('lanc'),    JSON.stringify(lancamentos));
+    localStorage.setItem(chaveLocal('pessoas'), JSON.stringify(pessoas));
+    localStorage.setItem(chaveLocal('cat'),     JSON.stringify(categoriasCustom));
+
+    if (!ghConfig) { setSyncStatus('local'); return; }
+
+    setSyncStatus('syncing');
+    try {
+      await ghPut(ghFilePath(), dadosUsuario());
+      setSyncStatus('ok');
+    } catch (e) {
+      setSyncStatus('error');
+      toast('⚠️ Dados salvos localmente. Falha na sincronização com GitHub.');
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  NAVEGAÇÃO
+  // ══════════════════════════════════════════
+  function setTab(tab) {
+    ['lancamentos', 'novo', 'pessoas', 'historico'].forEach(t => {
+      document.getElementById('painel-' + t).style.display = (t === tab) ? 'block' : 'none';
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+
+    if (tab === 'lancamentos') renderLancamentos();
+    if (tab === 'historico') renderHistorico();
+    if (tab === 'pessoas') renderPessoas();
+    if (tab === 'novo') {
+      setTipo(tipoAtual);
+      popularSelectPessoa();
+      document.getElementById('novo-descricao').value = '';
+      document.getElementById('novo-valor').value = '';
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  SALDO
+  // ══════════════════════════════════════════
+  function atualizarSaldo() {
+    const rec = lancamentos.filter(l => l.tipo === 'rec').reduce((s, l) => s + l.valor, 0);
+    const pag = lancamentos.filter(l => l.tipo === 'pag').reduce((s, l) => s + l.valor, 0);
+    const saldo = rec - pag;
+
+    document.getElementById('saldo-total').textContent = fmt(saldo);
+    document.getElementById('saldo-rec').textContent = fmt(rec);
+    document.getElementById('saldo-pag').textContent = fmt(pag);
+
+    const card = document.querySelector('.saldo-card');
+    if (saldo < 0) {
+      card.style.background = 'linear-gradient(135deg, #d93025 0%, #a50e0e 100%)';
+    } else {
+      card.style.background = 'linear-gradient(135deg, #1a73e8 0%, #0f5dbf 100%)';
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  NOVO LANÇAMENTO
+  // ══════════════════════════════════════════
+  function setTipo(tipo) {
+    tipoAtual = tipo;
+    const recBtn = document.getElementById('tipo-rec');
+    const pagBtn = document.getElementById('tipo-pag');
+    recBtn.className = 'tipo-btn' + (tipo === 'rec' ? ' active-rec' : '');
+    pagBtn.className = 'tipo-btn' + (tipo === 'pag' ? ' active-pag' : '');
+
+    document.getElementById('label-origem').textContent = 'Pessoa';
+
+    popularSelectCategoria(tipo);
+  }
+
+  function salvarLancamento() {
+    const data = document.getElementById('novo-data').value;
+    const valor = parseFloat(document.getElementById('novo-valor').value);
+    const pessoaId = document.getElementById('novo-pessoa').value;
+    const descricao = document.getElementById('novo-descricao').value.trim();
+    const categoria = document.getElementById('novo-categoria').value;
+
+    if (!data) { toast('Informe a data.'); return; }
+    if (!valor || valor <= 0) { toast('Informe um valor válido.'); return; }
+    if (!pessoaId) { toast('Selecione uma pessoa.'); return; }
+
+    const lancamento = {
+      id: Date.now().toString(),
+      tipo: tipoAtual,
+      data,
+      valor,
+      pessoaId,
+      descricao,
+      categoria,
+      criadoEm: new Date().toISOString(),
+    };
+
+    lancamentos.unshift(lancamento);
+    salvarLancamentos();
+    toast(tipoAtual === 'rec' ? '✅ Recebimento registrado!' : '✅ Pagamento registrado!');
+    setTab('lancamentos');
+  }
+
+  // ══════════════════════════════════════════
+  //  LISTA
+  // ══════════════════════════════════════════
+  function setFiltro(f) {
+    filtroAtual = f;
+    ['todos', 'rec', 'pag'].forEach(x => {
+      document.getElementById('filtro-' + x).classList.toggle('active', x === f);
+    });
+    renderLancamentos();
+  }
+
+  function periodoFiltro() {
+    const p = document.getElementById('filtro-periodo').value;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const fim = new Date(); fim.setHours(23,59,59,999);
+
+    if (p === 'hoje') {
+      return l => { const d = new Date(l.data + 'T00:00:00'); return d >= hoje && d <= fim; };
+    }
+    if (p === 'semana') {
+      const ini = new Date(hoje); ini.setDate(hoje.getDate() - hoje.getDay());
+      return l => { const d = new Date(l.data + 'T00:00:00'); return d >= ini && d <= fim; };
+    }
+    if (p === 'mes') {
+      const ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      return l => { const d = new Date(l.data + 'T00:00:00'); return d >= ini && d <= fim; };
+    }
+    return () => true;
+  }
+
+  function renderLancamentos() {
+    const filtPeriodo = periodoFiltro();
+    let lista = lancamentos.filter(filtPeriodo);
+    if (filtroAtual !== 'todos') lista = lista.filter(l => l.tipo === filtroAtual);
+    lista.sort((a, b) => new Date(b.data) - new Date(a.data) || b.criadoEm.localeCompare(a.criadoEm));
+
+    const el = document.getElementById('lista-lancamentos');
+    if (!lista.length) {
+      el.innerHTML = `<div class="empty-state"><span class="icon">📭</span>Nenhum lançamento encontrado.</div>`;
+      return;
+    }
+
+    el.innerHTML = lista.map(l => {
+      const pessoa = pessoas.find(p => p.id === l.pessoaId);
+      const nomePessoa = pessoa ? esc(pessoa.nome) : (l.origem ? esc(l.origem) : '<em style="color:var(--text-muted)">Pessoa removida</em>');
+      return `
+      <div class="lancamento-item">
+        <div class="lancamento-icon ${l.tipo}">${l.tipo === 'rec' ? '⬆' : '⬇'}</div>
+        <div class="lancamento-info">
+          <div class="lancamento-origem">${nomePessoa}</div>
+          <div class="lancamento-meta">
+            ${fmtData(l.data)}
+            ${l.categoria ? ' · ' + esc(l.categoria) : ''}
+            ${l.descricao ? ' · ' + esc(l.descricao) : ''}
+          </div>
+        </div>
+        <div class="lancamento-valor ${l.tipo}">
+          ${l.tipo === 'rec' ? '+' : '-'} ${fmt(l.valor)}
+        </div>
+        <button class="btn-del" onclick="abrirDel('${l.id}')" title="Excluir">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  // ══════════════════════════════════════════
+  //  HISTÓRICO
+  // ══════════════════════════════════════════
+  let chartPizza = null;
+  let chartBarras = null;
+
+  function nomeMes(m) {
+    const [ano, mes] = m.split('-');
+    return new Date(+ano, +mes - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' });
+  }
+
+  function nomeMesLongo(m) {
+    const [ano, mes] = m.split('-');
+    return new Date(+ano, +mes - 1, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+
+  function renderHistorico() {
+    const grupos = {};
+    lancamentos.forEach(l => {
+      const mes = l.data.substring(0, 7);
+      if (!grupos[mes]) grupos[mes] = { rec: 0, pag: 0 };
+      if (l.tipo === 'rec') grupos[mes].rec += l.valor;
+      else grupos[mes].pag += l.valor;
+    });
+
+    const el = document.getElementById('historico-lista');
+    const meses = Object.keys(grupos).sort((a, b) => a.localeCompare(b));
+
+    if (!meses.length) {
+      el.innerHTML = `<div class="empty-state"><span class="icon">📊</span>Nenhum dado ainda.</div>`;
+      document.getElementById('pizza-legenda').innerHTML = '';
+      if (chartPizza) { chartPizza.destroy(); chartPizza = null; }
+      if (chartBarras) { chartBarras.destroy(); chartBarras = null; }
+      return;
+    }
+
+    // ── popular seletor de mês para pizza ──
+    const sel = document.getElementById('hist-mes-sel');
+    const mesSelecionado = sel.value && grupos[sel.value] ? sel.value : meses[meses.length - 1];
+    sel.innerHTML = [...meses].reverse().map(m =>
+      `<option value="${m}" ${m === mesSelecionado ? 'selected' : ''}>${nomeMesLongo(m).replace(/^\w/, c => c.toUpperCase())}</option>`
+    ).join('');
+
+    // ── gráfico de pizza ──
+    const gPizza = grupos[mesSelecionado];
+    const ctxP = document.getElementById('chart-pizza').getContext('2d');
+    if (chartPizza) chartPizza.destroy();
+    if (gPizza.rec === 0 && gPizza.pag === 0) {
+      document.getElementById('pizza-legenda').innerHTML = '<span style="color:var(--text-muted)">Sem dados neste mês.</span>';
+      chartPizza = null;
+    } else {
+      chartPizza = new Chart(ctxP, {
+        type: 'doughnut',
+        data: {
+          labels: ['Recebimentos', 'Pagamentos'],
+          datasets: [{
+            data: [gPizza.rec, gPizza.pag],
+            backgroundColor: ['#0f9d58', '#d93025'],
+            borderColor: ['#fff', '#fff'],
+            borderWidth: 3,
+          }]
+        },
+        options: {
+          cutout: '62%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ' ' + fmt(ctx.raw)
+              }
+            }
+          }
+        }
+      });
+      document.getElementById('pizza-legenda').innerHTML = `
+        <span style="color:var(--success);">● Recebimentos: ${fmt(gPizza.rec)}</span>
+        <span style="color:var(--danger);">● Pagamentos: ${fmt(gPizza.pag)}</span>`;
+    }
+
+    // ── gráfico de barras ──
+    const ctxB = document.getElementById('chart-barras').getContext('2d');
+    if (chartBarras) chartBarras.destroy();
+    chartBarras = new Chart(ctxB, {
+      type: 'bar',
+      data: {
+        labels: meses.map(nomeMes),
+        datasets: [
+          {
+            label: 'Recebimentos',
+            data: meses.map(m => grupos[m].rec),
+            backgroundColor: '#0f9d5899',
+            borderColor: '#0f9d58',
+            borderWidth: 1.5,
+            borderRadius: 5,
+          },
+          {
+            label: 'Pagamentos',
+            data: meses.map(m => grupos[m].pag),
+            backgroundColor: '#d9302599',
+            borderColor: '#d93025',
+            borderWidth: 1.5,
+            borderRadius: 5,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 12 }, padding: 14, boxWidth: 12 }
+          },
+          tooltip: {
+            callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.raw) }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: {
+            grid: { color: '#f0f0f0' },
+            ticks: {
+              font: { size: 11 },
+              callback: v => 'R$ ' + (v >= 1000 ? (v/1000).toFixed(1) + 'k' : v)
+            }
+          }
+        }
+      }
+    });
+
+    // ── tabela resumo ──
+    el.innerHTML = [...meses].reverse().map(m => {
+      const g = grupos[m];
+      const saldo = g.rec - g.pag;
+      return `
+        <div style="padding:14px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:700;margin-bottom:6px;text-transform:capitalize">${nomeMesLongo(m)}</div>
+          <div style="display:flex;gap:12px;font-size:13px">
+            <span style="color:var(--success)">↑ ${fmt(g.rec)}</span>
+            <span style="color:var(--danger)">↓ ${fmt(g.pag)}</span>
+            <span style="font-weight:700;color:${saldo>=0?'var(--success)':'var(--danger)'}">= ${fmt(saldo)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ══════════════════════════════════════════
+  //  MODAL EXCLUSÃO
+  // ══════════════════════════════════════════
+  function abrirDel(id) {
+    deletandoId = id;
+    document.getElementById('modal-del').classList.add('open');
+  }
+
+  function fecharModal() {
+    deletandoId = null;
+    document.getElementById('modal-del').classList.remove('open');
+  }
+
+  function confirmarDelecao() {
+    lancamentos = lancamentos.filter(l => l.id !== deletandoId);
+    salvarLancamentos();
+    fecharModal();
+    renderLancamentos();
+    toast('Lançamento excluído.');
+  }
+
+  document.getElementById('modal-del').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+  });
+
+  // ══════════════════════════════════════════
+  //  PESSOAS
+  // ══════════════════════════════════════════
+  function salvarPessoasStorage() { sincronizar(); }
+
+  function popularSelectPessoa(selecionarId) {
+    const sel = document.getElementById('novo-pessoa');
+    const ordenadas = [...pessoas].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    sel.innerHTML = '<option value="">-- Selecione a pessoa --</option>';
+    ordenadas.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.nome + (p.tel ? '  · ' + p.tel : '');
+      sel.appendChild(o);
+    });
+    if (selecionarId) sel.value = selecionarId;
+  }
+
+  function renderPessoas() {
+    const busca = (document.getElementById('busca-pessoa').value || '').toLowerCase();
+    const el = document.getElementById('lista-pessoas');
+    const lista = pessoas
+      .filter(p => p.nome.toLowerCase().includes(busca))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    if (!lista.length) {
+      el.innerHTML = `<div class="empty-state"><span class="icon">👤</span>${busca ? 'Nenhuma pessoa encontrada.' : 'Nenhuma pessoa cadastrada ainda.'}</div>`;
+      return;
+    }
+
+    el.innerHTML = lista.map(p => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;">${esc(p.nome)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${p.tel ? '📞 ' + esc(p.tel) : '<em>Sem telefone</em>'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button onclick="abrirModalEditarPessoa('${p.id}')" style="background:none;border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:13px;" title="Editar">✏️</button>
+          <button onclick="abrirDelPessoa('${p.id}')" style="background:none;border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:13px;" title="Excluir">✕</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function abrirModalNovaPessoa() {
+    editandoPessoaId = null;
+    document.getElementById('modal-pessoa-titulo').textContent = 'Nova Pessoa';
+    document.getElementById('pessoa-nome').value = '';
+    document.getElementById('pessoa-tel').value = '';
+    document.getElementById('pessoa-erro').textContent = '';
+    document.getElementById('modal-pessoa').classList.add('open');
+    setTimeout(() => document.getElementById('pessoa-nome').focus(), 100);
+  }
+
+  function abrirModalEditarPessoa(id) {
+    const p = pessoas.find(x => x.id === id);
+    if (!p) return;
+    editandoPessoaId = id;
+    document.getElementById('modal-pessoa-titulo').textContent = 'Editar Pessoa';
+    document.getElementById('pessoa-nome').value = p.nome;
+    document.getElementById('pessoa-tel').value = p.tel || '';
+    document.getElementById('pessoa-erro').textContent = '';
+    document.getElementById('modal-pessoa').classList.add('open');
+    setTimeout(() => document.getElementById('pessoa-nome').focus(), 100);
+  }
+
+  function fecharModalPessoa() {
+    document.getElementById('modal-pessoa').classList.remove('open');
+  }
+
+  function salvarPessoa() {
+    const nome = document.getElementById('pessoa-nome').value.trim();
+    const tel = document.getElementById('pessoa-tel').value.trim();
+    const erroEl = document.getElementById('pessoa-erro');
+
+    if (!nome) { erroEl.textContent = 'O nome é obrigatório.'; return; }
+
+    const duplicado = pessoas.find(p => p.nome.toLowerCase() === nome.toLowerCase() && p.id !== editandoPessoaId);
+    if (duplicado) { erroEl.textContent = 'Já existe uma pessoa com este nome.'; return; }
+
+    if (editandoPessoaId) {
+      const p = pessoas.find(x => x.id === editandoPessoaId);
+      p.nome = nome;
+      p.tel = tel;
+    } else {
+      pessoas.push({ id: Date.now().toString(), nome, tel });
+    }
+
+    salvarPessoasStorage();
+    fecharModalPessoa();
+    renderPessoas();
+    popularSelectPessoa(editandoPessoaId || pessoas[pessoas.length - 1].id);
+    toast(editandoPessoaId ? '✅ Pessoa atualizada!' : '✅ Pessoa cadastrada!');
+  }
+
+  function abrirDelPessoa(id) {
+    deletandoPessoaId = id;
+    document.getElementById('modal-del-pessoa').classList.add('open');
+  }
+
+  function fecharModalDelPessoa() {
+    deletandoPessoaId = null;
+    document.getElementById('modal-del-pessoa').classList.remove('open');
+  }
+
+  function confirmarDelPessoa() {
+    pessoas = pessoas.filter(p => p.id !== deletandoPessoaId);
+    salvarPessoasStorage();
+    fecharModalDelPessoa();
+    renderPessoas();
+    toast('Pessoa removida.');
+  }
+
+  document.getElementById('modal-pessoa').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalPessoa();
+  });
+
+  document.getElementById('modal-del-pessoa').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalDelPessoa();
+  });
+
+  document.getElementById('pessoa-nome').addEventListener('keydown', e => {
+    if (e.key === 'Enter') salvarPessoa();
+  });
+
+  // ══════════════════════════════════════════
+  //  GITHUB CONFIG — TELA E MODAL
+  // ══════════════════════════════════════════
+  function mostrarTelaGitHub() {
+    document.getElementById('github-screen').style.display = 'flex';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'none';
+  }
+
+  async function salvarConfigGitHub() {
+    const token  = document.getElementById('gh-token').value.trim();
+    const owner  = document.getElementById('gh-owner').value.trim();
+    const repo   = document.getElementById('gh-repo').value.trim();
+    const branch = document.getElementById('gh-branch').value.trim() || 'main';
+    const errEl  = document.getElementById('github-error');
+    const btn    = document.getElementById('btn-gh-salvar');
+
+    if (!token || !owner || !repo) { errEl.textContent = 'Preencha todos os campos obrigatórios.'; return; }
+
+    errEl.textContent = '';
+    btn.textContent = 'Verificando...';
+    btn.disabled = true;
+
+    // Testa se o token tem acesso ao repositório
+    try {
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (!r.ok) throw new Error(r.status === 404 ? 'Repositório não encontrado.' : `Erro ${r.status} ao acessar o repositório.`);
+    } catch (e) {
+      errEl.textContent = '❌ ' + e.message;
+      btn.textContent = 'Conectar e continuar'; btn.disabled = false; return;
+    }
+
+    ghConfig = { token, owner, repo, branch };
+    localStorage.setItem('fc_gh_config', JSON.stringify(ghConfig));
+    localStorage.removeItem('fc_gh_skip');
+    btn.textContent = 'Conectar e continuar'; btn.disabled = false;
+    iniciarApp();
+  }
+
+  function usarSemGitHub() {
+    localStorage.setItem('fc_gh_skip', '1');
+    ghConfig = null;
+    iniciarApp();
+  }
+
+  function abrirModalGitHub() {
+    document.getElementById('menu-perfil').style.display = 'none';
+    const cfg = ghConfig || {};
+    document.getElementById('modal-gh-token').value  = cfg.token  || '';
+    document.getElementById('modal-gh-owner').value  = cfg.owner  || '';
+    document.getElementById('modal-gh-repo').value   = cfg.repo   || '';
+    document.getElementById('modal-gh-branch').value = cfg.branch || 'main';
+    document.getElementById('modal-github-status').textContent = '';
+    document.getElementById('modal-github').classList.add('open');
+  }
+
+  function fecharModalGitHub() {
+    document.getElementById('modal-github').classList.remove('open');
+  }
+
+  async function salvarConfigGitHubModal() {
+    const token  = document.getElementById('modal-gh-token').value.trim();
+    const owner  = document.getElementById('modal-gh-owner').value.trim();
+    const repo   = document.getElementById('modal-gh-repo').value.trim();
+    const branch = document.getElementById('modal-gh-branch').value.trim() || 'main';
+    const statusEl = document.getElementById('modal-github-status');
+
+    if (!token || !owner || !repo) { statusEl.style.color = 'var(--danger)'; statusEl.textContent = 'Preencha todos os campos.'; return; }
+
+    statusEl.style.color = 'var(--text-muted)';
+    statusEl.textContent = 'Verificando acesso...';
+
+    try {
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (!r.ok) throw new Error(r.status === 404 ? 'Repositório não encontrado.' : `Erro ${r.status}.`);
+    } catch (e) {
+      statusEl.style.color = 'var(--danger)'; statusEl.textContent = '❌ ' + e.message; return;
+    }
+
+    ghConfig = { token, owner, repo, branch };
+    localStorage.setItem('fc_gh_config', JSON.stringify(ghConfig));
+    localStorage.removeItem('fc_gh_skip');
+    statusEl.style.color = 'var(--success)';
+    statusEl.textContent = '✅ Conectado! Recarregando dados...';
+    ghShas = {};
+    setTimeout(async () => {
+      await carregarLancamentos();
+      fecharModalGitHub();
+      renderLancamentos();
+      toast('✅ GitHub configurado com sucesso!');
+    }, 800);
+  }
+
+  document.getElementById('modal-github').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalGitHub();
+  });
+
+  // também precisa funcionar no login
+  function login() {
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    if (!user || !pass) { document.getElementById('login-error').textContent = 'Preencha usuário e senha.'; return; }
+
+    const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
+    if (usuarios[user]) {
+      if (usuarios[user].senha !== btoa(pass)) { document.getElementById('login-error').textContent = 'Senha incorreta.'; return; }
+    } else {
+      usuarios[user] = { senha: btoa(pass), criadoEm: new Date().toISOString() };
+      localStorage.setItem('fc_usuarios', JSON.stringify(usuarios));
+    }
+    currentUser = user;
+    localStorage.setItem('fc_session', user);
+
+    carregarGhConfig();
+    if (!ghConfig && !localStorage.getItem('fc_gh_skip')) {
+      mostrarTelaGitHub();
+    } else {
+      iniciarApp();
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  MENU PERFIL / ALTERAR SENHA
+  // ══════════════════════════════════════════
+  function toggleMenuPerfil() {
+    const menu = document.getElementById('menu-perfil');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+
+  document.addEventListener('click', function(e) {
+    const btn = document.getElementById('btn-perfil');
+    const menu = document.getElementById('menu-perfil');
+    if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
+
+  function abrirModalSenha() {
+    document.getElementById('menu-perfil').style.display = 'none';
+    document.getElementById('senha-atual').value = '';
+    document.getElementById('senha-nova').value = '';
+    document.getElementById('senha-confirma').value = '';
+    document.getElementById('senha-erro').textContent = '';
+    document.getElementById('modal-senha').classList.add('open');
+  }
+
+  function fecharModalSenha() {
+    document.getElementById('modal-senha').classList.remove('open');
+  }
+
+  function alterarSenha() {
+    const atual = document.getElementById('senha-atual').value;
+    const nova = document.getElementById('senha-nova').value;
+    const confirma = document.getElementById('senha-confirma').value;
+    const erroEl = document.getElementById('senha-erro');
+
+    const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
+
+    if (usuarios[currentUser].senha !== btoa(atual)) {
+      erroEl.textContent = 'Senha atual incorreta.'; return;
+    }
+    if (!nova || nova.length < 4) {
+      erroEl.textContent = 'A nova senha precisa ter ao menos 4 caracteres.'; return;
+    }
+    if (nova !== confirma) {
+      erroEl.textContent = 'As senhas não coincidem.'; return;
+    }
+
+    usuarios[currentUser].senha = btoa(nova);
+    localStorage.setItem('fc_usuarios', JSON.stringify(usuarios));
+    fecharModalSenha();
+    toast('✅ Senha alterada com sucesso!');
+  }
+
+  document.getElementById('modal-senha').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalSenha();
+  });
+
+  // ══════════════════════════════════════════
+  //  GERENCIAR CATEGORIAS
+  // ══════════════════════════════════════════
+  function popularSelectCategoria(tipo) {
+    const sel = document.getElementById('novo-categoria');
+    const anterior = sel.value;
+    sel.innerHTML = '<option value="">-- Selecione --</option>';
+    todasCategorias(tipo).forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+    if (anterior) sel.value = anterior;
+  }
+
+  function abrirModalCategorias() {
+    catTabAtual = tipoAtual;
+    document.getElementById('modal-categorias').classList.add('open');
+    document.getElementById('nova-cat-input').value = '';
+    renderCatLista();
+    atualizarCatTabs();
+  }
+
+  function fecharModalCategorias() {
+    document.getElementById('modal-categorias').classList.remove('open');
+    popularSelectCategoria(tipoAtual);
+  }
+
+  function setCatTab(tipo) {
+    catTabAtual = tipo;
+    document.getElementById('nova-cat-input').value = '';
+    renderCatLista();
+    atualizarCatTabs();
+  }
+
+  function atualizarCatTabs() {
+    document.getElementById('cat-tab-rec').className = 'tipo-btn' + (catTabAtual === 'rec' ? ' active-rec' : '');
+    document.getElementById('cat-tab-pag').className = 'tipo-btn' + (catTabAtual === 'pag' ? ' active-pag' : '');
+  }
+
+  function renderCatLista() {
+    const el = document.getElementById('cat-lista');
+    const padrao = CATEGORIAS_PADRAO[catTabAtual];
+    const custom = categoriasCustom[catTabAtual];
+
+    let html = '';
+
+    if (padrao.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Padrão</div>`;
+      html += padrao.map(c => `
+        <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-size:14px;">${esc(c)}</span>
+          <span style="font-size:11px;color:var(--text-muted);background:var(--bg);padding:2px 8px;border-radius:10px;">padrão</span>
+        </div>`).join('');
+    }
+
+    if (custom.length) {
+      html += `<div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">Personalizadas</div>`;
+      html += custom.map((c, i) => `
+        <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="flex:1;font-size:14px;">${esc(c)}</span>
+          <button onclick="removerCategoria(${i})" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--text-muted);padding:4px 6px;border-radius:4px;" title="Remover">✕</button>
+        </div>`).join('');
+    }
+
+    if (!custom.length && !padrao.length) {
+      html = `<div class="empty-state"><span class="icon">🏷</span>Sem categorias.</div>`;
+    }
+
+    el.innerHTML = html;
+  }
+
+  function adicionarCategoria() {
+    const input = document.getElementById('nova-cat-input');
+    const nome = input.value.trim();
+    if (!nome) { toast('Digite o nome da categoria.'); return; }
+
+    const todas = todasCategorias(catTabAtual).map(c => c.toLowerCase());
+    if (todas.includes(nome.toLowerCase())) {
+      toast('Categoria já existe.'); return;
+    }
+
+    categoriasCustom[catTabAtual].push(nome);
+    salvarCategorias();
+    input.value = '';
+    renderCatLista();
+    toast('✅ Categoria criada!');
+  }
+
+  function removerCategoria(idx) {
+    categoriasCustom[catTabAtual].splice(idx, 1);
+    salvarCategorias();
+    renderCatLista();
+    toast('Categoria removida.');
+  }
+
+  document.getElementById('modal-categorias').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalCategorias();
+  });
+
+  document.getElementById('nova-cat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') adicionarCategoria();
+  });
+
+  // ══════════════════════════════════════════
+  //  UTILITÁRIOS
+  // ══════════════════════════════════════════
+  function fmt(v) {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function fmtData(s) {
+    const [a, m, d] = s.split('-');
+    return `${d}/${m}/${a}`;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // Enter no login
+  document.getElementById('login-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  // ══════════════════════════════════════════
+  //  START
+  // ══════════════════════════════════════════
+  verificarSessao();
+
+  // Registra Service Worker para funcionamento offline
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
