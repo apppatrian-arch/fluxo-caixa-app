@@ -794,9 +794,9 @@
 <!-- MODAL ESQUECI A SENHA -->
 <div class="modal-overlay" id="modal-esqueci">
   <div class="modal">
-    <h2>🔔 Recuperar senha</h2>
+    <h2>🔑 Recuperar senha</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
-      Digite o seu usuário cadastrado. A senha será exibida via notificação neste dispositivo.
+      Digite o seu usuário cadastrado para ver a senha.
     </p>
     <div class="form-group">
       <label>Usuário</label>
@@ -806,6 +806,7 @@
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="fecharEsqueciSenha()">Cancelar</button>
       <button class="btn btn-primary" id="btn-recuperar" onclick="recuperarSenha()">Mostrar senha</button>
+      <button class="btn btn-ghost" id="btn-fechar-esqueci" style="display:none;" onclick="fecharEsqueciSenha()">Fechar</button>
     </div>
   </div>
 </div>
@@ -1468,9 +1469,21 @@
 
   function fecharEsqueciSenha() {
     document.getElementById('modal-esqueci').classList.remove('open');
+    // Reseta o modal para o estado inicial
+    const input = document.getElementById('esqueci-email');
+    const label = document.querySelector('#modal-esqueci label');
+    input.style.display = '';
+    input.value = '';
+    if (label) label.style.display = '';
+    document.getElementById('esqueci-status').style.cssText = 'font-size:13px;min-height:18px;margin-bottom:8px;';
+    document.getElementById('esqueci-status').innerHTML = '';
+    document.getElementById('btn-recuperar').style.display = '';
+    document.getElementById('btn-recuperar').disabled = false;
+    document.getElementById('btn-recuperar').textContent = 'Mostrar senha';
+    document.getElementById('btn-fechar-esqueci').style.display = 'none';
   }
 
-  async function recuperarSenha() {
+  function recuperarSenha() {
     const email = document.getElementById('esqueci-email').value.trim().toLowerCase();
     const st    = document.getElementById('esqueci-status');
     const btn   = document.getElementById('btn-recuperar');
@@ -1483,30 +1496,16 @@
 
     const senha = atob(usuarios[email].senha);
 
-    // Tenta enviar via notificação push
-    if ('Notification' in window) {
-      const perm = Notification.permission === 'granted'
-        ? 'granted'
-        : await Notification.requestPermission();
-
-      if (perm === 'granted') {
-        new Notification('🔑 Fluxo de Caixa — Recuperação de senha', {
-          body: `Conta: ${email}\nSenha: ${senha}`,
-          icon: './icon.svg'
-        });
-        st.style.color = 'var(--success)';
-        st.textContent = '✅ Senha exibida na notificação!';
-        btn.textContent = 'Enviado!';
-        btn.disabled = true;
-        return;
-      }
-    }
-
-    // Fallback: exibe a senha direto na tela se notificação não disponível/negada
-    st.style.color = 'var(--text-muted)';
-    st.innerHTML = `Sua senha é: <strong style="color:var(--primary);font-size:16px;">${senha}</strong>`;
-    btn.textContent = 'Fechar';
-    btn.onclick = fecharEsqueciSenha;
+    // Exibe a senha diretamente no modal
+    document.getElementById('esqueci-email').style.display = 'none';
+    document.querySelector('#modal-esqueci label') && (document.querySelector('#modal-esqueci label').style.display = 'none');
+    st.style.cssText = 'text-align:center;padding:16px 0;';
+    st.innerHTML = `
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Sua senha é:</div>
+      <div style="font-size:22px;font-weight:700;color:var(--primary);letter-spacing:2px;background:var(--bg);padding:12px 20px;border-radius:10px;display:inline-block;">${esc(senha)}</div>
+    `;
+    btn.style.display = 'none';
+    document.getElementById('btn-fechar-esqueci').style.display = 'inline-flex';
   }
 
   document.getElementById('modal-esqueci').addEventListener('click', function(e) {
