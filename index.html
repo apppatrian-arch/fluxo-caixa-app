@@ -16,7 +16,6 @@
   <link rel="icon" type="image/svg+xml" href="./icon.svg" />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     :root {
       --primary: #1a73e8;
@@ -679,8 +678,8 @@
           <button onclick="abrirModalGitHub()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
             ☁️ Config. GitHub
           </button>
-          <button onclick="abrirModalEmailJS()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
-            📧 Config. E-mail
+          <button onclick="abrirModalWhatsApp()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
+            📱 Config. WhatsApp
           </button>
           <button onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--danger);border-top:1px solid var(--border);">
             🚪 Sair
@@ -864,9 +863,9 @@
 <!-- MODAL ESQUECI A SENHA -->
 <div class="modal-overlay" id="modal-esqueci">
   <div class="modal">
-    <h2>Recuperar senha</h2>
+    <h2>📱 Recuperar senha</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
-      Digite o seu e-mail cadastrado. A senha será enviada para ele.
+      Digite o seu e-mail cadastrado. A senha será enviada para o seu WhatsApp.
     </p>
     <div class="form-group">
       <label>E-mail</label>
@@ -875,41 +874,38 @@
     <div id="esqueci-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="fecharEsqueciSenha()">Cancelar</button>
-      <button class="btn btn-primary" id="btn-recuperar" onclick="recuperarSenha()">Enviar senha</button>
+      <button class="btn btn-primary" id="btn-recuperar" onclick="recuperarSenha()">Enviar no WhatsApp</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL CONFIG EMAILJS -->
-<div class="modal-overlay" id="modal-emailjs">
+<!-- MODAL CONFIG WHATSAPP -->
+<div class="modal-overlay" id="modal-whatsapp">
   <div class="modal" style="max-height:90vh;overflow-y:auto;">
-    <h2>📧 Configurar E-mail (EmailJS)</h2>
+    <h2>📱 Configurar WhatsApp</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">
-      Configure o EmailJS para enviar a senha por e-mail quando o usuário esquecer. Veja as instruções abaixo.
+      Cadastre seu WhatsApp para receber a senha caso esqueça. É gratuito e não precisa de conta extra.
     </p>
     <ol class="github-steps" style="margin-bottom:16px;">
-      <li>Crie conta grátis em <strong>emailjs.com</strong></li>
-      <li>Em <strong>Email Services</strong> conecte seu Gmail ou outro provedor</li>
-      <li>Em <strong>Email Templates</strong> crie um template com as variáveis:<br>
-          <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:11px;">{{to_email}}</code> e <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;font-size:11px;">{{senha}}</code></li>
-      <li>Copie o <strong>Service ID</strong>, <strong>Template ID</strong> e <strong>Public Key</strong></li>
+      <li>Salve o número <strong>+34 644 59 07 60</strong> na sua agenda</li>
+      <li>Envie a mensagem: <strong>I allow callmebot to send me messages</strong></li>
+      <li>Em segundos você recebe a sua <strong>API Key</strong> pelo WhatsApp</li>
+      <li>Preencha os campos abaixo com seu número e a API Key recebida</li>
     </ol>
     <div class="form-group">
-      <label>Public Key</label>
-      <input type="text" id="ejs-pubkey" placeholder="ex: aBcDeFgHiJkLmNoPq" />
+      <label>Número de WhatsApp (com DDI)</label>
+      <input type="tel" id="wa-phone" placeholder="ex: 5511999990000" maxlength="20" />
+      <span style="font-size:11px;color:var(--text-muted);">Somente números. Ex: 55 + DDD + número</span>
     </div>
     <div class="form-group">
-      <label>Service ID</label>
-      <input type="text" id="ejs-service" placeholder="ex: service_xxxxxxx" />
+      <label>API Key do CallMeBot</label>
+      <input type="text" id="wa-apikey" placeholder="ex: 123456" maxlength="20" />
     </div>
-    <div class="form-group">
-      <label>Template ID</label>
-      <input type="text" id="ejs-template" placeholder="ex: template_xxxxxxx" />
-    </div>
-    <div id="ejs-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
+    <div id="wa-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
     <div class="modal-btns">
-      <button class="btn btn-ghost" onclick="fecharModalEmailJS()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarConfigEmailJS()">Salvar</button>
+      <button class="btn btn-ghost" onclick="fecharModalWhatsApp()">Cancelar</button>
+      <button class="btn btn-success" onclick="testarWhatsApp()" style="width:auto;padding:14px 16px;">Testar</button>
+      <button class="btn btn-primary" onclick="salvarConfigWhatsApp()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1777,55 +1773,83 @@
   }
 
   // ══════════════════════════════════════════
-  //  EMAILJS — RECUPERAÇÃO DE SENHA
+  //  WHATSAPP (CALLMEBOT) — RECUPERAÇÃO DE SENHA
   // ══════════════════════════════════════════
   function emailValido(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
   }
 
-  function carregarEJSConfig() {
-    const s = localStorage.getItem('fc_ejs_config');
-    return s ? JSON.parse(s) : null;
+  function waCfgDoUsuario(email) {
+    const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
+    return usuarios[email] ? { phone: usuarios[email].waPhone, apikey: usuarios[email].waApiKey } : null;
   }
 
-  function abrirModalEmailJS() {
+  async function enviarWhatsApp(phone, apikey, mensagem) {
+    const texto = encodeURIComponent(mensagem);
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${texto}&apikey=${apikey}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Falha na API CallMeBot');
+  }
+
+  // ── Modal Configurar WhatsApp ──
+  function abrirModalWhatsApp() {
     document.getElementById('menu-perfil').style.display = 'none';
-    const cfg = carregarEJSConfig() || {};
-    document.getElementById('ejs-pubkey').value   = cfg.publicKey  || '';
-    document.getElementById('ejs-service').value  = cfg.serviceId  || '';
-    document.getElementById('ejs-template').value = cfg.templateId || '';
-    document.getElementById('ejs-status').textContent = '';
-    document.getElementById('modal-emailjs').classList.add('open');
+    const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
+    const u = usuarios[currentUser] || {};
+    document.getElementById('wa-phone').value  = u.waPhone  || '';
+    document.getElementById('wa-apikey').value = u.waApiKey || '';
+    document.getElementById('wa-status').textContent = '';
+    document.getElementById('modal-whatsapp').classList.add('open');
   }
 
-  function fecharModalEmailJS() {
-    document.getElementById('modal-emailjs').classList.remove('open');
+  function fecharModalWhatsApp() {
+    document.getElementById('modal-whatsapp').classList.remove('open');
   }
 
-  function salvarConfigEmailJS() {
-    const publicKey  = document.getElementById('ejs-pubkey').value.trim();
-    const serviceId  = document.getElementById('ejs-service').value.trim();
-    const templateId = document.getElementById('ejs-template').value.trim();
-    const st = document.getElementById('ejs-status');
+  function salvarConfigWhatsApp() {
+    const phone  = document.getElementById('wa-phone').value.replace(/\D/g, '');
+    const apikey = document.getElementById('wa-apikey').value.trim();
+    const st     = document.getElementById('wa-status');
 
-    if (!publicKey || !serviceId || !templateId) {
-      st.style.color = 'var(--danger)'; st.textContent = 'Preencha todos os campos.'; return;
+    if (!phone || !apikey) { st.style.color = 'var(--danger)'; st.textContent = 'Preencha número e API Key.'; return; }
+
+    const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
+    if (usuarios[currentUser]) {
+      usuarios[currentUser].waPhone  = phone;
+      usuarios[currentUser].waApiKey = apikey;
+      localStorage.setItem('fc_usuarios', JSON.stringify(usuarios));
     }
-
-    localStorage.setItem('fc_ejs_config', JSON.stringify({ publicKey, serviceId, templateId }));
-    st.style.color = 'var(--success)'; st.textContent = '✅ Configuração salva!';
-    setTimeout(fecharModalEmailJS, 1200);
+    st.style.color = 'var(--success)'; st.textContent = '✅ WhatsApp configurado!';
+    setTimeout(fecharModalWhatsApp, 1200);
+    toast('✅ WhatsApp configurado com sucesso!');
   }
 
-  document.getElementById('modal-emailjs').addEventListener('click', function(e) {
-    if (e.target === this) fecharModalEmailJS();
+  async function testarWhatsApp() {
+    const phone  = document.getElementById('wa-phone').value.replace(/\D/g, '');
+    const apikey = document.getElementById('wa-apikey').value.trim();
+    const st     = document.getElementById('wa-status');
+
+    if (!phone || !apikey) { st.style.color = 'var(--danger)'; st.textContent = 'Preencha número e API Key primeiro.'; return; }
+
+    st.style.color = 'var(--text-muted)'; st.textContent = 'Enviando mensagem de teste...';
+    try {
+      await enviarWhatsApp(phone, apikey, 'Fluxo de Caixa: teste de configuração realizado com sucesso! ✅');
+      st.style.color = 'var(--success)'; st.textContent = '✅ Mensagem de teste enviada!';
+    } catch {
+      st.style.color = 'var(--danger)'; st.textContent = '❌ Falha. Verifique o número e a API Key.';
+    }
+  }
+
+  document.getElementById('modal-whatsapp').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalWhatsApp();
   });
 
+  // ── Esqueci a senha ──
   function abrirEsqueciSenha() {
     document.getElementById('esqueci-email').value = '';
     document.getElementById('esqueci-status').textContent = '';
     document.getElementById('btn-recuperar').disabled = false;
-    document.getElementById('btn-recuperar').textContent = 'Enviar senha';
+    document.getElementById('btn-recuperar').textContent = 'Enviar no WhatsApp';
     document.getElementById('modal-esqueci').classList.add('open');
     setTimeout(() => document.getElementById('esqueci-email').focus(), 100);
   }
@@ -1835,42 +1859,38 @@
   }
 
   async function recuperarSenha() {
-    const email  = document.getElementById('esqueci-email').value.trim().toLowerCase();
-    const st     = document.getElementById('esqueci-status');
-    const btn    = document.getElementById('btn-recuperar');
+    const email = document.getElementById('esqueci-email').value.trim().toLowerCase();
+    const st    = document.getElementById('esqueci-status');
+    const btn   = document.getElementById('btn-recuperar');
 
     if (!email) { st.style.color = 'var(--danger)'; st.textContent = 'Digite o e-mail.'; return; }
     if (!emailValido(email)) { st.style.color = 'var(--danger)'; st.textContent = 'E-mail inválido.'; return; }
 
     const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
-    if (!usuarios[email]) {
-      st.style.color = 'var(--danger)'; st.textContent = 'E-mail não encontrado.'; return;
-    }
+    if (!usuarios[email]) { st.style.color = 'var(--danger)'; st.textContent = 'E-mail não cadastrado.'; return; }
 
-    const ejsCfg = carregarEJSConfig();
-    if (!ejsCfg) {
+    const { waPhone, waApiKey } = usuarios[email];
+    if (!waPhone || !waApiKey) {
       st.style.color = 'var(--danger)';
-      st.textContent = 'Configure o EmailJS primeiro (menu perfil → 📧 Config. E-mail).'; return;
+      st.textContent = 'WhatsApp não configurado para esta conta. Faça login e configure em Perfil → 📱 Config. WhatsApp.';
+      return;
     }
 
     btn.disabled = true; btn.textContent = 'Enviando...';
-    st.style.color = 'var(--text-muted)'; st.textContent = 'Enviando e-mail...';
+    st.style.color = 'var(--text-muted)'; st.textContent = 'Enviando mensagem...';
 
-    const senhaDecoded = atob(usuarios[email].senha);
+    const senha = atob(usuarios[email].senha);
+    const msg = `Fluxo de Caixa - Recuperação de senha\n\nConta: ${email}\nSenha: ${senha}\n\nSe não foi você, altere sua senha imediatamente.`;
 
     try {
-      emailjs.init({ publicKey: ejsCfg.publicKey });
-      await emailjs.send(ejsCfg.serviceId, ejsCfg.templateId, {
-        to_email: email,
-        senha: senhaDecoded,
-      });
+      await enviarWhatsApp(waPhone, waApiKey, msg);
       st.style.color = 'var(--success)';
-      st.textContent = '✅ Senha enviada para ' + email;
+      st.textContent = '✅ Senha enviada para o seu WhatsApp!';
       btn.textContent = 'Enviado!';
-    } catch (e) {
+    } catch {
       st.style.color = 'var(--danger)';
-      st.textContent = '❌ Falha ao enviar. Verifique a configuração do EmailJS.';
-      btn.disabled = false; btn.textContent = 'Enviar senha';
+      st.textContent = '❌ Falha ao enviar. Verifique se o WhatsApp está configurado corretamente.';
+      btn.disabled = false; btn.textContent = 'Enviar no WhatsApp';
     }
   }
 
