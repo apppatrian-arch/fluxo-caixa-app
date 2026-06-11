@@ -796,11 +796,11 @@
   <div class="modal">
     <h2>🔔 Recuperar senha</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
-      Digite o seu e-mail cadastrado. A senha será exibida via notificação neste dispositivo.
+      Digite o seu usuário cadastrado. A senha será exibida via notificação neste dispositivo.
     </p>
     <div class="form-group">
-      <label>E-mail</label>
-      <input type="email" id="esqueci-email" placeholder="seu@email.com" inputmode="email" />
+      <label>Usuário</label>
+      <input type="email" id="esqueci-email" placeholder="seu usuário" inputmode="email" />
     </div>
     <div id="esqueci-status" style="font-size:13px;min-height:18px;margin-bottom:8px;"></div>
     <div class="modal-btns">
@@ -1475,11 +1475,11 @@
     const st    = document.getElementById('esqueci-status');
     const btn   = document.getElementById('btn-recuperar');
 
-    if (!email) { st.style.color = 'var(--danger)'; st.textContent = 'Digite o e-mail.'; return; }
-    if (!emailValido(email)) { st.style.color = 'var(--danger)'; st.textContent = 'E-mail inválido.'; return; }
+    if (!email) { st.style.color = 'var(--danger)'; st.textContent = 'Digite o usuário.'; return; }
+    if (!emailValido(email)) { st.style.color = 'var(--danger)'; st.textContent = 'Usuário inválido.'; return; }
 
     const usuarios = JSON.parse(localStorage.getItem('fc_usuarios') || '{}');
-    if (!usuarios[email]) { st.style.color = 'var(--danger)'; st.textContent = 'E-mail não cadastrado.'; return; }
+    if (!usuarios[email]) { st.style.color = 'var(--danger)'; st.textContent = 'Usuário não cadastrado.'; return; }
 
     const senha = atob(usuarios[email].senha);
 
