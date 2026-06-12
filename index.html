@@ -16,6 +16,7 @@
   <link rel="icon" type="image/svg+xml" href="./icon.svg" />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --primary: #1a73e8;
@@ -627,6 +628,13 @@
           <button onclick="abrirModalSenha()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);">
             🔑 Alterar senha
           </button>
+          <button onclick="exportarBackup()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
+            📥 Exportar backup (.xlsx)
+          </button>
+          <button onclick="document.getElementById('input-importar').click()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--text);border-top:1px solid var(--border);">
+            📤 Importar backup (.xlsx)
+          </button>
+          <input type="file" id="input-importar" accept=".xlsx" style="display:none;" onchange="importarBackup(event)" />
           <button onclick="logout()" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:white;font-size:14px;cursor:pointer;color:var(--danger);border-top:1px solid var(--border);">
             🚪 Sair
           </button>
@@ -1083,6 +1091,108 @@
     localStorage.setItem(chaveLocal('cat'),        JSON.stringify(categoriasCustom));
     localStorage.setItem(chaveLocal('cat-ocult'),  JSON.stringify(categoriasOcultas));
     localStorage.setItem(chaveLocal('cat-prom'),   JSON.stringify(categoriasPromovidas));
+  }
+
+  // ══════════════════════════════════════════
+  //  BACKUP / RESTORE (.xlsx)
+  // ══════════════════════════════════════════
+  function exportarBackup() {
+    fecharMenu();
+    const wb = XLSX.utils.book_new();
+
+    // Sheet: Lançamentos
+    const lancRows = [['ID','Data','Tipo','Valor','Pessoa','Descrição','Categoria']];
+    lancamentos.forEach(l => {
+      const p = pessoas.find(x => x.id === l.pessoaId);
+      lancRows.push([l.id, l.data, l.tipo, l.valor, p ? p.nome : '', l.descricao || '', l.categoria || '']);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lancRows), 'Lançamentos');
+
+    // Sheet: Pessoas
+    const pesRows = [['ID','Nome','Telefone']];
+    pessoas.forEach(p => pesRows.push([p.id, p.nome, p.telefone || '']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pesRows), 'Pessoas');
+
+    // Sheet: Recorrentes
+    const recRows = [['ID','PessoaID','Descrição','Valor','Dia','Categoria','Pagos']];
+    recorrentes.forEach(r => {
+      recRows.push([r.id, r.pessoaId, r.descricao || '', r.valor, r.dia, r.categoria || '', (r.pagos || []).join(',')]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recRows), 'Recorrentes');
+
+    // Sheet: Categorias
+    const catRows = [['Tipo','Nome','Oculta','Promovida']];
+    (categoriasCustom.rec || []).forEach(n => catRows.push(['rec', n, (categoriasOcultas.rec||[]).includes(n)?'sim':'', (categoriasPromovidas.rec||[]).includes(n)?'sim':'']));
+    (categoriasCustom.pag || []).forEach(n => catRows.push(['pag', n, (categoriasOcultas.pag||[]).includes(n)?'sim':'', (categoriasPromovidas.pag||[]).includes(n)?'sim':'']));
+    (categoriasOcultas.rec||[]).filter(n=>!(categoriasCustom.rec||[]).includes(n)).forEach(n=>catRows.push(['rec',n,'sim','']));
+    (categoriasOcultas.pag||[]).filter(n=>!(categoriasCustom.pag||[]).includes(n)).forEach(n=>catRows.push(['pag',n,'sim','']));
+    (categoriasPromovidas.rec||[]).filter(n=>!(categoriasCustom.rec||[]).includes(n)&&!(categoriasOcultas.rec||[]).includes(n)).forEach(n=>catRows.push(['rec',n,'','sim']));
+    (categoriasPromovidas.pag||[]).filter(n=>!(categoriasCustom.pag||[]).includes(n)&&!(categoriasOcultas.pag||[]).includes(n)).forEach(n=>catRows.push(['pag',n,'','sim']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Categorias');
+
+    const hoje = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `fluxo-caixa-backup-${hoje}.xlsx`);
+  }
+
+  function importarBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, {type: 'array'});
+
+        // Pessoas
+        const wsPes = wb.Sheets['Pessoas'];
+        if (wsPes) {
+          const rows = XLSX.utils.sheet_to_json(wsPes, {header:1}).slice(1);
+          pessoas = rows.filter(r=>r[0]&&r[1]).map(r=>({id:String(r[0]),nome:String(r[1]),telefone:r[2]?String(r[2]):''}));
+        }
+
+        // Lançamentos
+        const wsLanc = wb.Sheets['Lançamentos'];
+        if (wsLanc) {
+          const rows = XLSX.utils.sheet_to_json(wsLanc, {header:1}).slice(1);
+          lancamentos = rows.filter(r=>r[0]).map(r=>{
+            const p = pessoas.find(x=>x.nome===String(r[4]||''));
+            return {id:String(r[0]),data:String(r[1]||''),tipo:String(r[2]||'rec'),valor:Number(r[3])||0,pessoaId:p?p.id:(r[4]?String(r[4]):''),descricao:String(r[5]||''),categoria:String(r[6]||'')};
+          });
+        }
+
+        // Recorrentes
+        const wsRec = wb.Sheets['Recorrentes'];
+        if (wsRec) {
+          const rows = XLSX.utils.sheet_to_json(wsRec, {header:1}).slice(1);
+          recorrentes = rows.filter(r=>r[0]).map(r=>({id:String(r[0]),pessoaId:String(r[1]||''),descricao:String(r[2]||''),valor:Number(r[3])||0,dia:Number(r[4])||1,categoria:String(r[5]||''),pagos:r[6]?String(r[6]).split(',').filter(Boolean):[]}));
+        }
+
+        // Categorias
+        const wsCat = wb.Sheets['Categorias'];
+        categoriasCustom = {rec:[],pag:[]};
+        categoriasOcultas = {rec:[],pag:[]};
+        categoriasPromovidas = {rec:[],pag:[]};
+        if (wsCat) {
+          const rows = XLSX.utils.sheet_to_json(wsCat, {header:1}).slice(1);
+          rows.forEach(r=>{
+            const tipo = String(r[0]||'');
+            const nome = String(r[1]||'');
+            if(!nome||!['rec','pag'].includes(tipo)) return;
+            if(!categoriasCustom[tipo].includes(nome)) categoriasCustom[tipo].push(nome);
+            if(r[2]==='sim'&&!categoriasOcultas[tipo].includes(nome)) categoriasOcultas[tipo].push(nome);
+            if(r[3]==='sim'&&!categoriasPromovidas[tipo].includes(nome)) categoriasPromovidas[tipo].push(nome);
+          });
+        }
+
+        sincronizar();
+        fecharMenu();
+        renderLancamentos();
+        alert('✅ Backup importado com sucesso!\n\n' + lancamentos.length + ' lançamentos, ' + pessoas.length + ' pessoas, ' + recorrentes.length + ' recorrentes.');
+      } catch(err) {
+        alert('❌ Erro ao importar backup:\n' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   }
 
   // ══════════════════════════════════════════
