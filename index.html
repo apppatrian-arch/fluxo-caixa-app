@@ -1097,7 +1097,7 @@
   //  BACKUP / RESTORE (.xlsx)
   // ══════════════════════════════════════════
   function exportarBackup() {
-    fecharMenu();
+    document.getElementById('menu-perfil').style.display = 'none';
     const wb = XLSX.utils.book_new();
 
     // Sheet: Lançamentos
@@ -1185,7 +1185,7 @@
         }
 
         sincronizar();
-        fecharMenu();
+        document.getElementById('menu-perfil').style.display = 'none';
         renderLancamentos();
         alert('✅ Backup importado com sucesso!\n\n' + lancamentos.length + ' lançamentos, ' + pessoas.length + ' pessoas, ' + recorrentes.length + ' recorrentes.');
       } catch(err) {
