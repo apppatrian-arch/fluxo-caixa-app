@@ -2056,6 +2056,7 @@
             ${valor ? `<div style="font-size:13px;font-weight:700;color:var(--danger);">${valor}</div>` : ''}
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <button onclick="lancarRecorrente('${r.id}')" style="font-size:11px;padding:4px 8px;border:none;border-radius:6px;background:var(--primary);color:white;font-weight:700;cursor:pointer;">+ Lançar</button>
             ${pago
               ? `<button onclick="desmarcarPago('${r.id}')" style="font-size:11px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;background:white;cursor:pointer;color:var(--text-muted);">Desfazer</button>`
               : `<button onclick="marcarPago('${r.id}')" style="font-size:11px;padding:4px 8px;border:none;border-radius:6px;background:var(--success);color:white;font-weight:700;cursor:pointer;">Pago ✓</button>`
@@ -2130,6 +2131,34 @@
     recorrentes = recorrentes.filter(r => r.id !== id);
     sincronizar(); renderRecorrentes();
     toast('Recorrente removido.');
+  }
+
+  function lancarRecorrente(id) {
+    const r = recorrentes.find(x => x.id === id);
+    if (!r) return;
+
+    // Muda para a aba "+ Novo" já com tipo pagamento
+    tipoAtual = 'pag';
+    setTab('novo');
+
+    // Preenche os campos com os dados do recorrente
+    setTipo('pag');
+
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('novo-data').value = hoje;
+    document.getElementById('novo-valor').value = r.valor || '';
+    document.getElementById('novo-descricao').value = r.descricao || '';
+
+    // Seleciona a pessoa
+    popularSelectPessoa(r.pessoaId);
+
+    // Seleciona a categoria
+    setTimeout(() => {
+      const selCat = document.getElementById('novo-categoria');
+      if (r.categoria) selCat.value = r.categoria;
+    }, 50);
+
+    toast('📋 Dados carregados — revise e salve o lançamento.');
   }
 
   document.getElementById('modal-recorrente').addEventListener('click', function(e) {
