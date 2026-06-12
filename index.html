@@ -1098,40 +1098,45 @@
   // ══════════════════════════════════════════
   function exportarBackup() {
     document.getElementById('menu-perfil').style.display = 'none';
-    const wb = XLSX.utils.book_new();
+    try {
+      if (typeof XLSX === 'undefined') {
+        alert('❌ Biblioteca de backup não carregada.\nVerifique sua conexão e recarregue o app.');
+        return;
+      }
 
-    // Sheet: Lançamentos
-    const lancRows = [['ID','Data','Tipo','Valor','Pessoa','Descrição','Categoria']];
-    lancamentos.forEach(l => {
-      const p = pessoas.find(x => x.id === l.pessoaId);
-      lancRows.push([l.id, l.data, l.tipo, l.valor, p ? p.nome : '', l.descricao || '', l.categoria || '']);
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lancRows), 'Lançamentos');
+      const wb = XLSX.utils.book_new();
 
-    // Sheet: Pessoas
-    const pesRows = [['ID','Nome','Telefone']];
-    pessoas.forEach(p => pesRows.push([p.id, p.nome, p.telefone || '']));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pesRows), 'Pessoas');
+      const lancRows = [['ID','Data','Tipo','Valor','Pessoa','Descricao','Categoria']];
+      lancamentos.forEach(l => {
+        const p = pessoas.find(x => x.id === l.pessoaId);
+        lancRows.push([l.id, l.data, l.tipo, l.valor, p ? p.nome : '', l.descricao || '', l.categoria || '']);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lancRows), 'Lancamentos');
 
-    // Sheet: Recorrentes
-    const recRows = [['ID','PessoaID','Descrição','Valor','Dia','Categoria','Pagos']];
-    recorrentes.forEach(r => {
-      recRows.push([r.id, r.pessoaId, r.descricao || '', r.valor, r.dia, r.categoria || '', (r.pagos || []).join(',')]);
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recRows), 'Recorrentes');
+      const pesRows = [['ID','Nome','Telefone']];
+      pessoas.forEach(p => pesRows.push([p.id, p.nome, p.telefone || '']));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pesRows), 'Pessoas');
 
-    // Sheet: Categorias
-    const catRows = [['Tipo','Nome','Oculta','Promovida']];
-    (categoriasCustom.rec || []).forEach(n => catRows.push(['rec', n, (categoriasOcultas.rec||[]).includes(n)?'sim':'', (categoriasPromovidas.rec||[]).includes(n)?'sim':'']));
-    (categoriasCustom.pag || []).forEach(n => catRows.push(['pag', n, (categoriasOcultas.pag||[]).includes(n)?'sim':'', (categoriasPromovidas.pag||[]).includes(n)?'sim':'']));
-    (categoriasOcultas.rec||[]).filter(n=>!(categoriasCustom.rec||[]).includes(n)).forEach(n=>catRows.push(['rec',n,'sim','']));
-    (categoriasOcultas.pag||[]).filter(n=>!(categoriasCustom.pag||[]).includes(n)).forEach(n=>catRows.push(['pag',n,'sim','']));
-    (categoriasPromovidas.rec||[]).filter(n=>!(categoriasCustom.rec||[]).includes(n)&&!(categoriasOcultas.rec||[]).includes(n)).forEach(n=>catRows.push(['rec',n,'','sim']));
-    (categoriasPromovidas.pag||[]).filter(n=>!(categoriasCustom.pag||[]).includes(n)&&!(categoriasOcultas.pag||[]).includes(n)).forEach(n=>catRows.push(['pag',n,'','sim']));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Categorias');
+      const recRows = [['ID','PessoaID','Descricao','Valor','Dia','Categoria','Pagos']];
+      recorrentes.forEach(r => {
+        recRows.push([r.id, r.pessoaId, r.descricao || '', r.valor, r.dia, r.categoria || '', (r.pagos || []).join(',')]);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(recRows), 'Recorrentes');
 
-    const hoje = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb, `fluxo-caixa-backup-${hoje}.xlsx`);
+      const catRows = [['Tipo','Nome','Oculta','Promovida']];
+      (categoriasCustom.rec || []).forEach(n => catRows.push(['rec', n, (categoriasOcultas.rec||[]).includes(n)?'sim':'', (categoriasPromovidas.rec||[]).includes(n)?'sim':'']));
+      (categoriasCustom.pag || []).forEach(n => catRows.push(['pag', n, (categoriasOcultas.pag||[]).includes(n)?'sim':'', (categoriasPromovidas.pag||[]).includes(n)?'sim':'']));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Categorias');
+
+      const d = new Date();
+      const sData = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      const nomeArquivo = 'fluxo-caixa-backup-' + sData + '.xlsx';
+      XLSX.writeFile(wb, nomeArquivo);
+
+      alert('✅ Backup gerado com sucesso!\n\n📄 Arquivo: ' + nomeArquivo + '\n📁 Salvo na pasta Downloads do dispositivo.\n\n📊 ' + lancamentos.length + ' lançamentos\n👤 ' + pessoas.length + ' pessoas\n🔁 ' + recorrentes.length + ' recorrentes');
+    } catch(err) {
+      alert('❌ Erro ao gerar backup:\n' + err.message);
+    }
   }
 
   function importarBackup(event) {
