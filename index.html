@@ -904,7 +904,10 @@
     </div>
     <div class="form-group">
       <label>Categoria</label>
-      <select id="rec-categoria"></select>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="rec-categoria" style="flex:1;"></select>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalCategoriasDeRecorrente()" title="Gerenciar categorias" style="flex-shrink:0;padding:11px 12px;">⚙</button>
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-ghost" onclick="fecharModalRecorrente()">Cancelar</button>
@@ -1713,9 +1716,37 @@
     atualizarCatTabs();
   }
 
+  let origemModalCategorias = 'lancamento'; // 'lancamento' | 'recorrente'
+
   function fecharModalCategorias() {
-    document.getElementById('modal-categorias').classList.remove('open');
-    popularSelectCategoria(tipoAtual);
+    const el = document.getElementById('modal-categorias');
+    el.classList.remove('open');
+    el.classList.remove('sobre');
+    if (origemModalCategorias === 'recorrente') {
+      // Atualiza select de categoria do modal recorrente
+      const sel = document.getElementById('rec-categoria');
+      const anterior = sel.value;
+      sel.innerHTML = '<option value="">-- Selecione --</option>';
+      todasCategorias('pag').forEach(c => {
+        const o = document.createElement('option');
+        o.value = c; o.textContent = c; sel.appendChild(o);
+      });
+      if (anterior) sel.value = anterior;
+    } else {
+      popularSelectCategoria(tipoAtual);
+    }
+    origemModalCategorias = 'lancamento';
+  }
+
+  function abrirModalCategoriasDeRecorrente() {
+    origemModalCategorias = 'recorrente';
+    catTabAtual = 'pag';
+    document.getElementById('nova-cat-input').value = '';
+    renderCatLista();
+    atualizarCatTabs();
+    const el = document.getElementById('modal-categorias');
+    el.classList.add('open');
+    el.classList.add('sobre');
   }
 
   function setCatTab(tipo) {
