@@ -886,7 +886,7 @@
       <label>Pessoa</label>
       <div style="display:flex;gap:8px;">
         <select id="rec-pessoa" style="flex:1;"></select>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalNovaPessoa()" style="flex-shrink:0;padding:11px 12px;">+</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="abrirModalNovaPessoa('recorrente')" style="flex-shrink:0;padding:11px 12px;">+</button>
       </div>
     </div>
     <div class="form-group">
@@ -958,6 +958,7 @@
 
   let pessoas = [];
   let editandoPessoaId = null;
+  let origemCadastroPessoa = 'lancamento'; // 'lancamento' | 'recorrente'
   let deletandoPessoaId = null;
 
   // categoriasCustom.rec/pag = lista de nomes personalizados
@@ -1423,8 +1424,9 @@
       </div>`).join('');
   }
 
-  function abrirModalNovaPessoa() {
+  function abrirModalNovaPessoa(origem) {
     editandoPessoaId = null;
+    origemCadastroPessoa = origem || 'lancamento';
     document.getElementById('modal-pessoa-titulo').textContent = 'Nova Pessoa';
     document.getElementById('pessoa-nome').value = '';
     document.getElementById('pessoa-tel').value = '';
@@ -1467,10 +1469,24 @@
       pessoas.push({ id: Date.now().toString(), nome, tel });
     }
 
+    const novaId = editandoPessoaId || pessoas[pessoas.length - 1].id;
     salvarPessoasStorage();
     fecharModalPessoa();
     renderPessoas();
-    popularSelectPessoa(editandoPessoaId || pessoas[pessoas.length - 1].id);
+
+    if (origemCadastroPessoa === 'recorrente') {
+      // Atualiza o select do modal de recorrente e seleciona a nova pessoa
+      const sel = document.getElementById('rec-pessoa');
+      sel.innerHTML = '<option value="">-- Selecione --</option>';
+      pessoas.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.id; o.textContent = p.nome;
+        sel.appendChild(o);
+      });
+      sel.value = novaId;
+    } else {
+      popularSelectPessoa(novaId);
+    }
     toast(editandoPessoaId ? '✅ Pessoa atualizada!' : '✅ Pessoa cadastrada!');
   }
 
