@@ -917,7 +917,7 @@
               <input type="text" id="pest-obs" placeholder="Opcional" maxlength="80" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
             </div>
           </div>
-          <button onclick="salvarMovEstoque()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">+ Registrar</button>
+          <button id="pest-btn-salvar" onclick="salvarMovEstoque()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">+ Registrar</button>
         </div>
 
         <!-- Extrato de estoque -->
@@ -2711,31 +2711,59 @@
   }
 
   // ── ESTOQUE ──
+  let paulEstEditId = null;
+
+  function editarMovEstoque(id, data, tipo, cod, qtd, obs) {
+    paulEstEditId = id;
+    document.getElementById('pest-data').value    = data;
+    document.getElementById('pest-tipo').value    = tipo;
+    document.getElementById('pest-produto').value = String(cod);
+    document.getElementById('pest-qtd').value     = qtd;
+    document.getElementById('pest-obs').value     = obs || '';
+    const btn = document.getElementById('pest-btn-salvar');
+    btn.textContent = '💾 Salvar Alteração';
+    btn.style.background = '#f59e0b';
+    document.getElementById('ppainel-estoque').scrollTop = 0;
+    document.getElementById('pest-data').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function cancelarEdicaoEstoque() {
+    paulEstEditId = null;
+    document.getElementById('pest-produto').value = '';
+    document.getElementById('pest-qtd').value     = '';
+    document.getElementById('pest-obs').value     = '';
+    const btn = document.getElementById('pest-btn-salvar');
+    btn.textContent = '+ Registrar';
+    btn.style.background = 'var(--primary)';
+  }
+
   async function salvarMovEstoque() {
     const data = document.getElementById('pest-data').value;
     const tipo = document.getElementById('pest-tipo').value;
     const cod  = document.getElementById('pest-produto').value;
     const qtd  = parseInt(document.getElementById('pest-qtd').value);
     const obs  = document.getElementById('pest-obs').value.trim();
-    if (!data)           { alert('Informe a data.'); return; }
-    if (!cod)            { alert('Selecione o produto.'); return; }
-    if (!qtd || qtd <= 0){ alert('Informe uma quantidade válida.'); return; }
+    if (!data)            { alert('Informe a data.'); return; }
+    if (!cod)             { alert('Selecione o produto.'); return; }
+    if (!qtd || qtd <= 0) { alert('Informe uma quantidade válida.'); return; }
 
     try {
+      if (paulEstEditId) {
+        await paulFetch('DELETE', '/paulistinha/estoque/' + paulEstEditId);
+      }
       await paulFetch('POST', '/paulistinha/estoque', {
         data, tipo, produto_cod: parseInt(cod), quantidade: qtd, observacao: obs || null
       });
-      document.getElementById('pest-produto').value = '';
-      document.getElementById('pest-qtd').value     = '';
-      document.getElementById('pest-obs').value     = '';
+      cancelarEdicaoEstoque();
       renderEstoque();
-    } catch(e) { alert('❌ Erro ao registrar movimentação:\n' + e.message); }
+    } catch(e) { alert('❌ Erro ao salvar movimentação:\n' + e.message); }
   }
 
   async function excluirMovEstoque(id) {
     if (!confirm('Excluir esta movimentação?')) return;
     try {
       await paulFetch('DELETE', '/paulistinha/estoque/' + id);
+      if (paulEstEditId === id) cancelarEdicaoEstoque();
       renderEstoque();
     } catch(e) { alert('❌ Erro ao excluir:\n' + e.message); }
   }
@@ -2790,14 +2818,19 @@
       lista.innerHTML = movs.map(m => {
         const cod      = String(m.produto_cod);
         const nomeProd = paulProdutos[cod] || cod;
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
-          '<div style="width:36px;height:36px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
+        const fmtQtd  = Number(m.quantidade).toLocaleString('pt-BR');
+        const dataStr = String(m.data).slice(0,10).split('-').reverse().join('/');
+        const obsEsc  = (m.observacao || '').replace(/'/g, "\\'");
+        const dataEsc = String(m.data).slice(0,10);
+        return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+          '<div style="width:34px;height:34px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
           '<div style="flex:1;min-width:0;">' +
             '<div style="font-size:11px;font-weight:700;color:var(--text-muted);">[' + cod + '] ' + nomeProd + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted);">' + String(m.data).slice(0,10).split('-').reverse().join('/') + (m.observacao?' · '+m.observacao:'') + '</div>' +
+            '<div style="font-size:11px;color:var(--text-muted);">' + dataStr + (m.observacao?' · '+m.observacao:'') + '</div>' +
           '</div>' +
-          '<div style="font-size:14px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + m.quantidade + ' cx</div>' +
-          '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
+          '<div style="font-size:13px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + fmtQtd + ' cx</div>' +
+          '<button onclick="editarMovEstoque(' + m.id + ',\'' + dataEsc + '\',\'' + m.tipo + '\',' + m.produto_cod + ',' + m.quantidade + ',\'' + obsEsc + '\')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Alterar">✏️</button>' +
+          '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' +
         '</div>';
       }).join('');
     } catch(e) {
