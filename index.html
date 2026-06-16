@@ -2522,40 +2522,106 @@
   }
 
   // ══════════════════════════════════════════
-  //  CONTROLE PAULISTINHA
+  //  CONTROLE PAULISTINHA — API
   // ══════════════════════════════════════════
-  const PRODUTOS_PAUL = {
-    '54':    'PAULISTINHA TRADICIONAL',
-    '60':    'PAULISTINHA MENTA',
-    '97':    'PAULISTINHA CEREJA ICE',
-    '110':   'PAULISTINHA SERIE OURO',
-    '1654':  'PAULISTINHA CLASSIC C/ FILTRO',
-    '1990':  'PAULISTINHA CLASSIC MENTA C/ FILTRO',
-    '7050':  'AROEIRO TRADICIONAL',
-    '11196': 'AROEIRO MENTA'
-  };
+  const PAUL_API  = 'https://apis.cifaldistribuidora.com.br:8000';
+  const PAUL_USER = 'cvlima';
+  const PAUL_PASS = 123;
 
-  let paulFin = [];   // { id, data, tipo:'cred'|'deb', desc, valor }
-  let paulEst = [];   // { id, data, tipo:'entrada'|'saida', cod, qtd, obs }
+  let paulToken    = localStorage.getItem('fc_paul_token') || null;
   let paulTabAtual = 'financeiro';
+  let paulProdutos = {};  // { cod: descricao } carregado da API
 
-  function carregarPaulData() {
-    paulFin = JSON.parse(localStorage.getItem('fc_paulistinha_fin') || '[]');
-    paulEst = JSON.parse(localStorage.getItem('fc_paulistinha_est') || '[]');
+  function paulLoading(elId, msg) {
+    const el = document.getElementById(elId);
+    if (el) el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">⏳ ' + (msg || 'Carregando...') + '</div>';
   }
 
-  function salvarPaulData() {
-    localStorage.setItem('fc_paulistinha_fin', JSON.stringify(paulFin));
-    localStorage.setItem('fc_paulistinha_est', JSON.stringify(paulEst));
+  async function paulAuth() {
+    try {
+      const r = await fetch(PAUL_API + '/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName: PAUL_USER, password: PAUL_PASS })
+      });
+      if (!r.ok) throw new Error('Falha na autenticação (' + r.status + ')');
+      const data = await r.json();
+      paulToken = data.token || data.accessToken || data.access_token || data;
+      if (typeof paulToken !== 'string') paulToken = JSON.stringify(paulToken);
+      localStorage.setItem('fc_paul_token', paulToken);
+      return true;
+    } catch(e) {
+      alert('❌ Erro ao conectar na API Paulistinha:\n' + e.message);
+      return false;
+    }
   }
 
-  function initPaulistinha() {
-    carregarPaulData();
+  async function paulFetch(method, path, body) {
+    const doReq = async () => {
+      const opts = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + paulToken
+        }
+      };
+      if (body) opts.body = JSON.stringify(body);
+      return fetch(PAUL_API + path, opts);
+    };
+
+    let r = await doReq();
+    if (r.status === 401) {
+      const ok = await paulAuth();
+      if (!ok) return null;
+      r = await doReq();
+    }
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(txt || r.status);
+    }
+    const ct = r.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return r.json();
+    return r.text();
+  }
+
+  async function initPaulistinha() {
     const hoje = new Date();
     const sHoje = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
     document.getElementById('pfin-data').value = sHoje;
     document.getElementById('pest-data').value = sHoje;
+
+    if (!paulToken) {
+      const ok = await paulAuth();
+      if (!ok) return;
+    }
+
+    // Carrega produtos da API para preencher os selects dinamicamente
+    try {
+      const prods = await paulFetch('GET', '/paulistinha/produtos');
+      paulProdutos = {};
+      if (Array.isArray(prods)) {
+        prods.forEach(p => { paulProdutos[String(p.codigo)] = p.descricao; });
+        preencherSelectProdutos(prods);
+      }
+    } catch(e) { /* usa produtos já no HTML */ }
+
     setPTab(paulTabAtual);
+  }
+
+  function preencherSelectProdutos(prods) {
+    ['pest-produto', 'pest-filtro-prod'].forEach(selId => {
+      const sel = document.getElementById(selId);
+      if (!sel) return;
+      const primeiro = sel.options[0].cloneNode(true);
+      sel.innerHTML = '';
+      sel.appendChild(primeiro);
+      prods.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = String(p.codigo);
+        opt.textContent = p.codigo + ' – ' + p.descricao;
+        sel.appendChild(opt);
+      });
+    });
   }
 
   function setPTab(tab) {
@@ -2579,138 +2645,149 @@
   }
 
   // ── FINANCEIRO ──
-  function salvarLancFin() {
+  async function salvarLancFin() {
     const data  = document.getElementById('pfin-data').value;
     const tipo  = document.getElementById('pfin-tipo').value;
     const desc  = document.getElementById('pfin-desc').value.trim();
     const valor = parseFloat(document.getElementById('pfin-valor').value);
-    if (!data)       { alert('Informe a data.'); return; }
-    if (!desc)       { alert('Informe a descrição.'); return; }
+    if (!data)            { alert('Informe a data.'); return; }
+    if (!desc)            { alert('Informe a descrição.'); return; }
     if (!valor || valor <= 0) { alert('Informe um valor válido.'); return; }
 
-    paulFin.push({ id: Date.now().toString(), data, tipo, desc, valor });
-    paulFin.sort((a,b) => a.data > b.data ? -1 : 1);
-    salvarPaulData();
-    document.getElementById('pfin-desc').value  = '';
-    document.getElementById('pfin-valor').value = '';
-    renderFinanceiro();
+    try {
+      await paulFetch('POST', '/paulistinha/financeiro', { data, tipo, descricao: desc, valor });
+      document.getElementById('pfin-desc').value  = '';
+      document.getElementById('pfin-valor').value = '';
+      renderFinanceiro();
+    } catch(e) { alert('❌ Erro ao salvar lançamento:\n' + e.message); }
   }
 
-  function excluirLancFin(id) {
+  async function excluirLancFin(id) {
     if (!confirm('Excluir este lançamento?')) return;
-    paulFin = paulFin.filter(x => x.id !== id);
-    salvarPaulData();
-    renderFinanceiro();
+    try {
+      await paulFetch('DELETE', '/paulistinha/financeiro/' + id);
+      renderFinanceiro();
+    } catch(e) { alert('❌ Erro ao excluir:\n' + e.message); }
   }
 
-  function renderFinanceiro() {
-    carregarPaulData();
-    let totalCred = 0, totalDeb = 0;
-    paulFin.forEach(l => {
-      if (l.tipo === 'cred') totalCred += Number(l.valor);
-      else                   totalDeb  += Number(l.valor);
-    });
-    const saldo = totalCred - totalDeb;
-    const elSaldo = document.getElementById('pfin-saldo');
-    elSaldo.textContent = fmtMoeda(saldo);
-    elSaldo.style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
-    document.getElementById('pfin-total-cred').textContent = fmtMoeda(totalCred);
-    document.getElementById('pfin-total-deb').textContent  = fmtMoeda(totalDeb);
+  async function renderFinanceiro() {
+    paulLoading('pfin-lista');
+    try {
+      const [saldoData, lancamentos] = await Promise.all([
+        paulFetch('GET', '/paulistinha/financeiro/saldo'),
+        paulFetch('GET', '/paulistinha/financeiro')
+      ]);
 
-    const lista = document.getElementById('pfin-lista');
-    if (!paulFin.length) {
-      lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhum lançamento ainda.</div>';
-      return;
+      const saldo    = Number(saldoData.saldo        || 0);
+      const totCred  = Number(saldoData.total_credito || 0);
+      const totDeb   = Number(saldoData.total_debito  || 0);
+
+      const elSaldo = document.getElementById('pfin-saldo');
+      elSaldo.textContent = fmtMoeda(saldo);
+      elSaldo.style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
+      document.getElementById('pfin-total-cred').textContent = fmtMoeda(totCred);
+      document.getElementById('pfin-total-deb').textContent  = fmtMoeda(totDeb);
+
+      const lista = document.getElementById('pfin-lista');
+      if (!lancamentos || !lancamentos.length) {
+        lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhum lançamento ainda.</div>';
+        return;
+      }
+      lista.innerHTML = lancamentos.map(l => {
+        const val = Number(l.valor);
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:' + (l.tipo==='cred'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (l.tipo==='cred'?'↑':'↓') + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (l.descricao||'') + '</div>' +
+            '<div style="font-size:11px;color:var(--text-muted);">' + String(l.data).slice(0,10).split('-').reverse().join('/') + '</div>' +
+          '</div>' +
+          '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
+          '<button onclick="excluirLancFin(' + l.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
+        '</div>';
+      }).join('');
+    } catch(e) {
+      document.getElementById('pfin-lista').innerHTML = '<div style="color:var(--danger);padding:16px;font-size:13px;">❌ Erro ao carregar: ' + e.message + '</div>';
     }
-
-    let saldoAcum = totalCred - totalDeb;
-    lista.innerHTML = paulFin.map(l => {
-      const val = Number(l.valor);
-      const linha = '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
-        '<div style="width:36px;height:36px;border-radius:50%;background:' + (l.tipo==='cred'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (l.tipo==='cred'?'↑':'↓') + '</div>' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + l.desc + '</div>' +
-          '<div style="font-size:11px;color:var(--text-muted);">' + l.data.split('-').reverse().join('/') + '</div>' +
-        '</div>' +
-        '<div style="text-align:right;flex-shrink:0;">' +
-          '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
-        '</div>' +
-        '<button onclick="excluirLancFin(\'' + l.id + '\')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
-      '</div>';
-      return linha;
-    }).join('');
   }
 
   // ── ESTOQUE ──
-  function salvarMovEstoque() {
+  async function salvarMovEstoque() {
     const data = document.getElementById('pest-data').value;
     const tipo = document.getElementById('pest-tipo').value;
     const cod  = document.getElementById('pest-produto').value;
     const qtd  = parseInt(document.getElementById('pest-qtd').value);
     const obs  = document.getElementById('pest-obs').value.trim();
-    if (!data)      { alert('Informe a data.'); return; }
-    if (!cod)       { alert('Selecione o produto.'); return; }
-    if (!qtd || qtd <= 0) { alert('Informe uma quantidade válida.'); return; }
+    if (!data)           { alert('Informe a data.'); return; }
+    if (!cod)            { alert('Selecione o produto.'); return; }
+    if (!qtd || qtd <= 0){ alert('Informe uma quantidade válida.'); return; }
 
-    paulEst.push({ id: Date.now().toString(), data, tipo, cod, qtd, obs });
-    paulEst.sort((a,b) => a.data > b.data ? -1 : 1);
-    salvarPaulData();
-    document.getElementById('pest-produto').value = '';
-    document.getElementById('pest-qtd').value     = '';
-    document.getElementById('pest-obs').value     = '';
-    renderEstoque();
+    try {
+      await paulFetch('POST', '/paulistinha/estoque', {
+        data, tipo, produto_cod: parseInt(cod), quantidade: qtd, observacao: obs || null
+      });
+      document.getElementById('pest-produto').value = '';
+      document.getElementById('pest-qtd').value     = '';
+      document.getElementById('pest-obs').value     = '';
+      renderEstoque();
+    } catch(e) { alert('❌ Erro ao registrar movimentação:\n' + e.message); }
   }
 
-  function excluirMovEstoque(id) {
+  async function excluirMovEstoque(id) {
     if (!confirm('Excluir esta movimentação?')) return;
-    paulEst = paulEst.filter(x => x.id !== id);
-    salvarPaulData();
-    renderEstoque();
+    try {
+      await paulFetch('DELETE', '/paulistinha/estoque/' + id);
+      renderEstoque();
+    } catch(e) { alert('❌ Erro ao excluir:\n' + e.message); }
   }
 
-  function renderEstoque() {
-    carregarPaulData();
+  async function renderEstoque() {
+    paulLoading('pest-saldos', 'Carregando saldos...');
+    paulLoading('pest-lista',  'Carregando movimentações...');
+    try {
+      const [saldos, movimentos] = await Promise.all([
+        paulFetch('GET', '/paulistinha/estoque/saldo'),
+        paulFetch('GET', '/paulistinha/estoque')
+      ]);
 
-    // Calcula saldo por produto
-    const saldos = {};
-    Object.keys(PRODUTOS_PAUL).forEach(cod => { saldos[cod] = 0; });
-    paulEst.forEach(m => {
-      if (m.tipo === 'entrada') saldos[m.cod] = (saldos[m.cod] || 0) + Number(m.qtd);
-      else                      saldos[m.cod] = (saldos[m.cod] || 0) - Number(m.qtd);
-    });
+      // Cards de saldo por produto
+      const elSaldos = document.getElementById('pest-saldos');
+      if (Array.isArray(saldos) && saldos.length) {
+        elSaldos.innerHTML = saldos.map(p => {
+          const s = Number(p.saldo_caixas || 0);
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:8px;">' +
+            '<div><span style="font-size:11px;color:var(--text-muted);font-weight:700;">' + p.codigo + '</span> <span style="font-size:12px;">' + p.descricao + '</span></div>' +
+            '<div style="font-size:14px;font-weight:800;color:' + (s>=0?'var(--success)':'var(--danger)') + ';">' + s + ' cx</div>' +
+          '</div>';
+        }).join('');
+      } else {
+        elSaldos.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:10px;font-size:13px;">Sem saldos.</div>';
+      }
 
-    // Cards de saldo
-    const elSaldos = document.getElementById('pest-saldos');
-    elSaldos.innerHTML = Object.entries(PRODUTOS_PAUL).map(([cod, nome]) => {
-      const s = saldos[cod] || 0;
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:8px;">' +
-        '<div><span style="font-size:11px;color:var(--text-muted);font-weight:700;">' + cod + '</span> <span style="font-size:12px;">' + nome + '</span></div>' +
-        '<div style="font-size:14px;font-weight:800;color:' + (s>=0?'var(--success)':'var(--danger)') + ';">' + s + ' cx</div>' +
-      '</div>';
-    }).join('');
+      // Extrato filtrado
+      const filtro = document.getElementById('pest-filtro-prod').value;
+      const movs = filtro ? (movimentos||[]).filter(m => String(m.produto_cod) === filtro) : (movimentos||[]);
+      const lista = document.getElementById('pest-lista');
 
-    // Extrato filtrado
-    const filtro = document.getElementById('pest-filtro-prod').value;
-    const movs = filtro ? paulEst.filter(m => m.cod === filtro) : paulEst;
-    const lista = document.getElementById('pest-lista');
-
-    if (!movs.length) {
-      lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma movimentação.</div>';
-      return;
+      if (!movs.length) {
+        lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma movimentação.</div>';
+        return;
+      }
+      lista.innerHTML = movs.map(m => {
+        const cod      = String(m.produto_cod);
+        const nomeProd = paulProdutos[cod] || cod;
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+          '<div style="width:36px;height:36px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:11px;font-weight:700;color:var(--text-muted);">[' + cod + '] ' + nomeProd + '</div>' +
+            '<div style="font-size:11px;color:var(--text-muted);">' + String(m.data).slice(0,10).split('-').reverse().join('/') + (m.observacao?' · '+m.observacao:'') + '</div>' +
+          '</div>' +
+          '<div style="font-size:14px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + m.quantidade + ' cx</div>' +
+          '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
+        '</div>';
+      }).join('');
+    } catch(e) {
+      document.getElementById('pest-lista').innerHTML = '<div style="color:var(--danger);padding:16px;font-size:13px;">❌ Erro ao carregar: ' + e.message + '</div>';
     }
-
-    lista.innerHTML = movs.map(m => {
-      const nomeProd = PRODUTOS_PAUL[m.cod] || m.cod;
-      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
-        '<div style="width:36px;height:36px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:11px;font-weight:700;color:var(--text-muted);">[' + m.cod + '] ' + nomeProd + '</div>' +
-          '<div style="font-size:11px;color:var(--text-muted);">' + m.data.split('-').reverse().join('/') + (m.obs?' · '+m.obs:'') + '</div>' +
-        '</div>' +
-        '<div style="font-size:14px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + m.qtd + ' cx</div>' +
-        '<button onclick="excluirMovEstoque(\'' + m.id + '\')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
-      '</div>';
-    }).join('');
   }
 </script>
 </body>
