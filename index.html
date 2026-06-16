@@ -668,6 +668,7 @@
       <button class="tab" id="tab-recorrentes" onclick="setTab('recorrentes')">🔁 Recorrentes</button>
       <button class="tab" id="tab-pessoas" onclick="setTab('pessoas')">Pessoas</button>
       <button class="tab" id="tab-historico" onclick="setTab('historico')">Histórico</button>
+      <button class="tab" id="tab-paulistinha" onclick="setTab('paulistinha')" style="white-space:nowrap;">🚬 Paulistinha</button>
     </div>
 
     <!-- ── PAINEL LANÇAMENTOS ── -->
@@ -803,6 +804,143 @@
         <div id="historico-lista"></div>
       </div>
     </div>
+
+    <!-- ── PAINEL PAULISTINHA ── -->
+    <div id="painel-paulistinha" style="display:none;">
+
+      <!-- Sub-abas -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button id="ptab-financeiro" onclick="setPTab('financeiro')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--primary);color:white;">💰 Financeiro</button>
+        <button id="ptab-estoque" onclick="setPTab('estoque')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);">📦 Estoque</button>
+      </div>
+
+      <!-- SUB-PAINEL FINANCEIRO -->
+      <div id="ppainel-financeiro">
+        <!-- Saldo -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Saldo Atual</div>
+            <div id="pfin-saldo" style="font-size:24px;font-weight:800;margin-top:2px;">R$ 0,00</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:var(--success);">↑ Crédito</div>
+              <div id="pfin-total-cred" style="font-size:13px;font-weight:700;color:var(--success);">R$ 0,00</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:var(--danger);">↓ Débito</div>
+              <div id="pfin-total-deb" style="font-size:13px;font-weight:700;color:var(--danger);">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form novo lançamento financeiro -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Novo Lançamento</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Data</label>
+              <input type="date" id="pfin-data" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Tipo</label>
+              <select id="pfin-tipo" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);">
+                <option value="cred">Crédito (+)</option>
+                <option value="deb">Débito (-)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Descrição</label>
+            <input type="text" id="pfin-desc" placeholder="Ex: Pagamento cliente, Compra produto..." maxlength="100" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Valor (R$)</label>
+            <input type="number" id="pfin-valor" placeholder="0,00" min="0" step="0.01" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+          </div>
+          <button onclick="salvarLancFin()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">+ Lançar</button>
+        </div>
+
+        <!-- Extrato financeiro -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Extrato</div>
+          <div id="pfin-lista"></div>
+        </div>
+      </div>
+
+      <!-- SUB-PAINEL ESTOQUE -->
+      <div id="ppainel-estoque" style="display:none;">
+
+        <!-- Cards de saldo por produto -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Saldo em Estoque</div>
+          <div id="pest-saldos" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <!-- Form nova movimentação de estoque -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Nova Movimentação</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Data</label>
+              <input type="date" id="pest-data" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Tipo</label>
+              <select id="pest-tipo" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);">
+                <option value="entrada">Entrada (recebeu)</option>
+                <option value="saida">Saída (vendeu)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Produto</label>
+            <select id="pest-produto" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);">
+              <option value="">Selecione o produto...</option>
+              <option value="54">54 – PAULISTINHA TRADICIONAL</option>
+              <option value="60">60 – PAULISTINHA MENTA</option>
+              <option value="97">97 – PAULISTINHA CEREJA ICE</option>
+              <option value="110">110 – PAULISTINHA SERIE OURO</option>
+              <option value="1654">1654 – PAULISTINHA CLASSIC C/ FILTRO</option>
+              <option value="1990">1990 – PAULISTINHA CLASSIC MENTA C/ FILTRO</option>
+              <option value="7050">7050 – AROEIRO TRADICIONAL</option>
+              <option value="11196">11196 – AROEIRO MENTA</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Quantidade (cx)</label>
+              <input type="number" id="pest-qtd" placeholder="0" min="1" step="1" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Observação</label>
+              <input type="text" id="pest-obs" placeholder="Opcional" maxlength="80" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+            </div>
+          </div>
+          <button onclick="salvarMovEstoque()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">+ Registrar</button>
+        </div>
+
+        <!-- Extrato de estoque -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:13px;font-weight:700;">Movimentações</div>
+            <select id="pest-filtro-prod" onchange="renderEstoque()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);">
+              <option value="">Todos os produtos</option>
+              <option value="54">54 – TRAD.</option>
+              <option value="60">60 – MENTA</option>
+              <option value="97">97 – CEREJA</option>
+              <option value="110">110 – OURO</option>
+              <option value="1654">1654 – CLASS. FILTRO</option>
+              <option value="1990">1990 – CLASS. MENTA FILTRO</option>
+              <option value="7050">7050 – AROEIRO TRAD.</option>
+              <option value="11196">11196 – AROEIRO MENTA</option>
+            </select>
+          </div>
+          <div id="pest-lista"></div>
+        </div>
+      </div>
+
+    </div><!-- /painel-paulistinha -->
 
   </div>
 </div>
@@ -1204,7 +1342,7 @@
   //  NAVEGAÇÃO
   // ══════════════════════════════════════════
   function setTab(tab) {
-    ['lancamentos', 'novo', 'recorrentes', 'pessoas', 'historico'].forEach(t => {
+    ['lancamentos', 'novo', 'recorrentes', 'pessoas', 'historico', 'paulistinha'].forEach(t => {
       document.getElementById('painel-' + t).style.display = (t === tab) ? 'block' : 'none';
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
@@ -1213,6 +1351,7 @@
     if (tab === 'historico') renderHistorico();
     if (tab === 'pessoas') renderPessoas();
     if (tab === 'recorrentes') renderRecorrentes();
+    if (tab === 'paulistinha') initPaulistinha();
     if (tab === 'novo') {
       setTipo(tipoAtual);
       popularSelectPessoa();
@@ -2380,6 +2519,198 @@
         }
       });
     }).catch(() => {});
+  }
+
+  // ══════════════════════════════════════════
+  //  CONTROLE PAULISTINHA
+  // ══════════════════════════════════════════
+  const PRODUTOS_PAUL = {
+    '54':    'PAULISTINHA TRADICIONAL',
+    '60':    'PAULISTINHA MENTA',
+    '97':    'PAULISTINHA CEREJA ICE',
+    '110':   'PAULISTINHA SERIE OURO',
+    '1654':  'PAULISTINHA CLASSIC C/ FILTRO',
+    '1990':  'PAULISTINHA CLASSIC MENTA C/ FILTRO',
+    '7050':  'AROEIRO TRADICIONAL',
+    '11196': 'AROEIRO MENTA'
+  };
+
+  let paulFin = [];   // { id, data, tipo:'cred'|'deb', desc, valor }
+  let paulEst = [];   // { id, data, tipo:'entrada'|'saida', cod, qtd, obs }
+  let paulTabAtual = 'financeiro';
+
+  function carregarPaulData() {
+    paulFin = JSON.parse(localStorage.getItem('fc_paulistinha_fin') || '[]');
+    paulEst = JSON.parse(localStorage.getItem('fc_paulistinha_est') || '[]');
+  }
+
+  function salvarPaulData() {
+    localStorage.setItem('fc_paulistinha_fin', JSON.stringify(paulFin));
+    localStorage.setItem('fc_paulistinha_est', JSON.stringify(paulEst));
+  }
+
+  function initPaulistinha() {
+    carregarPaulData();
+    const hoje = new Date();
+    const sHoje = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+    document.getElementById('pfin-data').value = sHoje;
+    document.getElementById('pest-data').value = sHoje;
+    setPTab(paulTabAtual);
+  }
+
+  function setPTab(tab) {
+    paulTabAtual = tab;
+    document.getElementById('ppainel-financeiro').style.display = tab === 'financeiro' ? 'block' : 'none';
+    document.getElementById('ppainel-estoque').style.display    = tab === 'estoque'    ? 'block' : 'none';
+    const btnFin = document.getElementById('ptab-financeiro');
+    const btnEst = document.getElementById('ptab-estoque');
+    btnFin.style.background = tab === 'financeiro' ? 'var(--primary)' : 'var(--bg)';
+    btnFin.style.color      = tab === 'financeiro' ? 'white'          : 'var(--text-muted)';
+    btnFin.style.border     = tab === 'financeiro' ? 'none'           : '1.5px solid var(--border)';
+    btnEst.style.background = tab === 'estoque'    ? 'var(--primary)' : 'var(--bg)';
+    btnEst.style.color      = tab === 'estoque'    ? 'white'          : 'var(--text-muted)';
+    btnEst.style.border     = tab === 'estoque'    ? 'none'           : '1.5px solid var(--border)';
+    if (tab === 'financeiro') renderFinanceiro();
+    if (tab === 'estoque')    renderEstoque();
+  }
+
+  function fmtMoeda(v) {
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  // ── FINANCEIRO ──
+  function salvarLancFin() {
+    const data  = document.getElementById('pfin-data').value;
+    const tipo  = document.getElementById('pfin-tipo').value;
+    const desc  = document.getElementById('pfin-desc').value.trim();
+    const valor = parseFloat(document.getElementById('pfin-valor').value);
+    if (!data)       { alert('Informe a data.'); return; }
+    if (!desc)       { alert('Informe a descrição.'); return; }
+    if (!valor || valor <= 0) { alert('Informe um valor válido.'); return; }
+
+    paulFin.push({ id: Date.now().toString(), data, tipo, desc, valor });
+    paulFin.sort((a,b) => a.data > b.data ? -1 : 1);
+    salvarPaulData();
+    document.getElementById('pfin-desc').value  = '';
+    document.getElementById('pfin-valor').value = '';
+    renderFinanceiro();
+  }
+
+  function excluirLancFin(id) {
+    if (!confirm('Excluir este lançamento?')) return;
+    paulFin = paulFin.filter(x => x.id !== id);
+    salvarPaulData();
+    renderFinanceiro();
+  }
+
+  function renderFinanceiro() {
+    carregarPaulData();
+    let totalCred = 0, totalDeb = 0;
+    paulFin.forEach(l => {
+      if (l.tipo === 'cred') totalCred += Number(l.valor);
+      else                   totalDeb  += Number(l.valor);
+    });
+    const saldo = totalCred - totalDeb;
+    const elSaldo = document.getElementById('pfin-saldo');
+    elSaldo.textContent = fmtMoeda(saldo);
+    elSaldo.style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('pfin-total-cred').textContent = fmtMoeda(totalCred);
+    document.getElementById('pfin-total-deb').textContent  = fmtMoeda(totalDeb);
+
+    const lista = document.getElementById('pfin-lista');
+    if (!paulFin.length) {
+      lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhum lançamento ainda.</div>';
+      return;
+    }
+
+    let saldoAcum = totalCred - totalDeb;
+    lista.innerHTML = paulFin.map(l => {
+      const val = Number(l.valor);
+      const linha = '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:' + (l.tipo==='cred'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (l.tipo==='cred'?'↑':'↓') + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + l.desc + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + l.data.split('-').reverse().join('/') + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
+        '</div>' +
+        '<button onclick="excluirLancFin(\'' + l.id + '\')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
+      '</div>';
+      return linha;
+    }).join('');
+  }
+
+  // ── ESTOQUE ──
+  function salvarMovEstoque() {
+    const data = document.getElementById('pest-data').value;
+    const tipo = document.getElementById('pest-tipo').value;
+    const cod  = document.getElementById('pest-produto').value;
+    const qtd  = parseInt(document.getElementById('pest-qtd').value);
+    const obs  = document.getElementById('pest-obs').value.trim();
+    if (!data)      { alert('Informe a data.'); return; }
+    if (!cod)       { alert('Selecione o produto.'); return; }
+    if (!qtd || qtd <= 0) { alert('Informe uma quantidade válida.'); return; }
+
+    paulEst.push({ id: Date.now().toString(), data, tipo, cod, qtd, obs });
+    paulEst.sort((a,b) => a.data > b.data ? -1 : 1);
+    salvarPaulData();
+    document.getElementById('pest-produto').value = '';
+    document.getElementById('pest-qtd').value     = '';
+    document.getElementById('pest-obs').value     = '';
+    renderEstoque();
+  }
+
+  function excluirMovEstoque(id) {
+    if (!confirm('Excluir esta movimentação?')) return;
+    paulEst = paulEst.filter(x => x.id !== id);
+    salvarPaulData();
+    renderEstoque();
+  }
+
+  function renderEstoque() {
+    carregarPaulData();
+
+    // Calcula saldo por produto
+    const saldos = {};
+    Object.keys(PRODUTOS_PAUL).forEach(cod => { saldos[cod] = 0; });
+    paulEst.forEach(m => {
+      if (m.tipo === 'entrada') saldos[m.cod] = (saldos[m.cod] || 0) + Number(m.qtd);
+      else                      saldos[m.cod] = (saldos[m.cod] || 0) - Number(m.qtd);
+    });
+
+    // Cards de saldo
+    const elSaldos = document.getElementById('pest-saldos');
+    elSaldos.innerHTML = Object.entries(PRODUTOS_PAUL).map(([cod, nome]) => {
+      const s = saldos[cod] || 0;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:8px;">' +
+        '<div><span style="font-size:11px;color:var(--text-muted);font-weight:700;">' + cod + '</span> <span style="font-size:12px;">' + nome + '</span></div>' +
+        '<div style="font-size:14px;font-weight:800;color:' + (s>=0?'var(--success)':'var(--danger)') + ';">' + s + ' cx</div>' +
+      '</div>';
+    }).join('');
+
+    // Extrato filtrado
+    const filtro = document.getElementById('pest-filtro-prod').value;
+    const movs = filtro ? paulEst.filter(m => m.cod === filtro) : paulEst;
+    const lista = document.getElementById('pest-lista');
+
+    if (!movs.length) {
+      lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma movimentação.</div>';
+      return;
+    }
+
+    lista.innerHTML = movs.map(m => {
+      const nomeProd = PRODUTOS_PAUL[m.cod] || m.cod;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:11px;font-weight:700;color:var(--text-muted);">[' + m.cod + '] ' + nomeProd + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + m.data.split('-').reverse().join('/') + (m.obs?' · '+m.obs:'') + '</div>' +
+        '</div>' +
+        '<div style="font-size:14px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + m.qtd + ' cx</div>' +
+        '<button onclick="excluirMovEstoque(\'' + m.id + '\')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;">🗑</button>' +
+      '</div>';
+    }).join('');
   }
 </script>
 </body>
