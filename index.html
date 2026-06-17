@@ -1025,7 +1025,32 @@
         <div id="acoes-resultado-hist" style="margin-top:12px;"></div>
       </div>
 
+      <!-- Minhas Carteiras -->
+      <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;">💼 Minhas Carteiras</div>
+          <button onclick="abrirModalCarteira()" style="padding:7px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">+ Nova Carteira</button>
+        </div>
+        <div id="carteiras-lista"></div>
+      </div>
+
     </div><!-- /painel-acoes -->
+
+<!-- MODAL NOVA/EDITAR CARTEIRA -->
+<div class="modal-overlay" id="modal-carteira">
+  <div class="modal">
+    <h2 id="modal-carteira-titulo">Nova Carteira</h2>
+    <div class="form-group">
+      <label>Nome da Carteira <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="carteira-nome" placeholder="Ex: Dividendos, Crescimento..." maxlength="50" />
+    </div>
+    <input type="hidden" id="carteira-edit-id" />
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn-secondary" onclick="fecharModalCarteira()" style="flex:1;">Cancelar</button>
+      <button class="btn-primary" onclick="salvarCarteira()" style="flex:1;">Salvar</button>
+    </div>
+  </div>
+</div>
 
   </div>
 </div>
@@ -2625,6 +2650,8 @@
       document.getElementById('acoes-token-box').style.display = 'block';
       document.getElementById('acoes-token-input').value = '';
     }
+    carteiras = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+    renderCarteiras();
   }
 
   function salvarTokenAcoes() {
@@ -2769,6 +2796,201 @@
     } catch(e) {
       acoesErro('acoes-resultado-hist', e.message);
     }
+  }
+
+  // ══════════════════════════════════════════
+  //  CARTEIRAS DE AÇÕES
+  // ══════════════════════════════════════════
+  let carteiras = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+
+  function salvarCarteiras() {
+    localStorage.setItem('fc_carteiras', JSON.stringify(carteiras));
+  }
+
+  function abrirModalCarteira(id) {
+    const el = document.getElementById('modal-carteira');
+    if (id) {
+      const c = carteiras.find(x => x.id === id);
+      document.getElementById('modal-carteira-titulo').textContent = 'Editar Carteira';
+      document.getElementById('carteira-nome').value = c ? c.nome : '';
+      document.getElementById('carteira-edit-id').value = id;
+    } else {
+      document.getElementById('modal-carteira-titulo').textContent = 'Nova Carteira';
+      document.getElementById('carteira-nome').value = '';
+      document.getElementById('carteira-edit-id').value = '';
+    }
+    el.classList.add('open');
+    setTimeout(() => document.getElementById('carteira-nome').focus(), 100);
+  }
+
+  function fecharModalCarteira() {
+    document.getElementById('modal-carteira').classList.remove('open');
+  }
+
+  function salvarCarteira() {
+    const nome = document.getElementById('carteira-nome').value.trim();
+    const editId = document.getElementById('carteira-edit-id').value;
+    if (!nome) { alert('Informe o nome da carteira.'); return; }
+    if (editId) {
+      const c = carteiras.find(x => x.id === editId);
+      if (c) c.nome = nome;
+    } else {
+      carteiras.push({ id: Date.now().toString(), nome, acoes: [] });
+    }
+    salvarCarteiras();
+    fecharModalCarteira();
+    renderCarteiras();
+  }
+
+  function excluirCarteira(id) {
+    if (!confirm('Excluir esta carteira e todas as ações?')) return;
+    carteiras = carteiras.filter(x => x.id !== id);
+    salvarCarteiras();
+    renderCarteiras();
+  }
+
+  function adicionarAcaoCarteira(carteiraId) {
+    const ticker = document.getElementById('ci-ticker-' + carteiraId).value.trim().toUpperCase();
+    const qtd    = parseFloat(document.getElementById('ci-qtd-' + carteiraId).value);
+    const custo  = parseFloat(document.getElementById('ci-custo-' + carteiraId).value);
+    if (!ticker)          { alert('Informe o ticker.'); return; }
+    if (!qtd || qtd <= 0) { alert('Informe a quantidade.'); return; }
+    if (!custo || custo <= 0) { alert('Informe o custo unitário.'); return; }
+    const c = carteiras.find(x => x.id === carteiraId);
+    if (!c) return;
+    c.acoes.push({ id: Date.now().toString(), ticker, qtd, custo });
+    salvarCarteiras();
+    document.getElementById('ci-ticker-' + carteiraId).value = '';
+    document.getElementById('ci-qtd-' + carteiraId).value    = '';
+    document.getElementById('ci-custo-' + carteiraId).value  = '';
+    atualizarCotacoesCarteira(carteiraId);
+  }
+
+  function removerAcaoCarteira(carteiraId, acaoId) {
+    const c = carteiras.find(x => x.id === carteiraId);
+    if (!c) return;
+    c.acoes = c.acoes.filter(a => a.id !== acaoId);
+    salvarCarteiras();
+    renderCarteiras();
+  }
+
+  async function atualizarCotacoesCarteira(carteiraId) {
+    const c = carteiras.find(x => x.id === carteiraId);
+    if (!c || !c.acoes.length) { renderCarteiras(); return; }
+
+    const tickers = [...new Set(c.acoes.map(a => a.ticker))].join(',');
+    const elBtn = document.getElementById('cbtn-atualizar-' + carteiraId);
+    if (elBtn) { elBtn.textContent = '⏳'; elBtn.disabled = true; }
+
+    try {
+      const r = await fetch(brapiUrl('/quote/' + tickers + '?fundamental=false'));
+      if (!r.ok) throw new Error('Erro ' + r.status);
+      const data = await r.json();
+      const precos = {};
+      (data.results || []).forEach(q => { precos[q.symbol] = Number(q.regularMarketPrice || 0); });
+      c.acoes.forEach(a => { if (precos[a.ticker]) a.precoAtual = precos[a.ticker]; });
+      salvarCarteiras();
+    } catch(e) { /* mantém preço anterior */ }
+
+    renderCarteiras();
+  }
+
+  function renderCarteiras() {
+    const el = document.getElementById('carteiras-lista');
+    if (!el) return;
+    if (!carteiras.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma carteira. Clique em "+ Nova Carteira" para começar.</div>';
+      return;
+    }
+
+    el.innerHTML = carteiras.map(c => {
+      const totalCusto   = c.acoes.reduce((s, a) => s + (a.qtd * a.custo), 0);
+      const totalAtual   = c.acoes.reduce((s, a) => s + (a.qtd * (a.precoAtual || a.custo)), 0);
+      const varTotal     = totalCusto > 0 ? ((totalAtual - totalCusto) / totalCusto * 100) : 0;
+      const corVar       = varTotal >= 0 ? 'var(--success)' : 'var(--danger)';
+      const sinalVar     = varTotal >= 0 ? '+' : '';
+      const fmt          = v => 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+      const fmtPct       = v => (v >= 0 ? '+' : '') + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + '%';
+
+      const linhasAcoes = c.acoes.length ? c.acoes.map(a => {
+        const tCusto   = a.qtd * a.custo;
+        const tAtual   = a.qtd * (a.precoAtual || a.custo);
+        const varAcao  = tCusto > 0 ? ((tAtual - tCusto) / tCusto * 100) : 0;
+        const corAcao  = varAcao >= 0 ? 'var(--success)' : 'var(--danger)';
+        return '<tr>' +
+          '<td style="padding:7px 8px;font-size:12px;font-weight:700;">' + a.ticker + '</td>' +
+          '<td style="padding:7px 8px;font-size:12px;text-align:right;">' + Number(a.qtd).toLocaleString('pt-BR') + '</td>' +
+          '<td style="padding:7px 8px;font-size:12px;text-align:right;">' + fmt(a.custo) + '</td>' +
+          '<td style="padding:7px 8px;font-size:12px;text-align:right;color:' + (a.precoAtual ? 'var(--text)' : 'var(--text-muted)') + ';">' + (a.precoAtual ? fmt(a.precoAtual) : '—') + '</td>' +
+          '<td style="padding:7px 8px;font-size:12px;text-align:right;">' + fmt(tCusto) + '</td>' +
+          '<td style="padding:7px 8px;font-size:12px;text-align:right;">' + fmt(tAtual) + '</td>' +
+          '<td style="padding:7px 8px;font-size:11px;font-weight:700;text-align:right;color:' + corAcao + ';">' + fmtPct(varAcao) + '</td>' +
+          '<td style="padding:7px 4px;text-align:center;"><button onclick="removerAcaoCarteira(\'' + c.id + '\',\'' + a.id + '\')" style="background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px;">🗑</button></td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="8" style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px;">Nenhuma ação. Adicione abaixo.</td></tr>';
+
+      const rodape = c.acoes.length ? '<tr style="background:var(--bg);font-weight:700;">' +
+        '<td colspan="4" style="padding:8px;font-size:12px;">Total</td>' +
+        '<td style="padding:8px;font-size:12px;text-align:right;">' + fmt(totalCusto) + '</td>' +
+        '<td style="padding:8px;font-size:12px;text-align:right;">' + fmt(totalAtual) + '</td>' +
+        '<td style="padding:8px;font-size:12px;font-weight:800;text-align:right;color:' + corVar + ';">' + fmtPct(varTotal) + '</td>' +
+        '<td></td></tr>' : '';
+
+      return '<div style="border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;">' +
+        // Header da carteira
+        '<div style="background:var(--primary);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">' +
+          '<div style="color:white;font-size:13px;font-weight:700;">💼 ' + c.nome + '</div>' +
+          '<div style="display:flex;gap:6px;">' +
+            '<button id="cbtn-atualizar-' + c.id + '" onclick="atualizarCotacoesCarteira(\'' + c.id + '\')" style="background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:white;font-size:12px;padding:4px 10px;cursor:pointer;" title="Atualizar cotações">🔄</button>' +
+            '<button onclick="abrirModalCarteira(\'' + c.id + '\')" style="background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:white;font-size:12px;padding:4px 10px;cursor:pointer;">✏️</button>' +
+            '<button onclick="excluirCarteira(\'' + c.id + '\')" style="background:rgba(255,255,255,0.2);border:none;border-radius:6px;color:white;font-size:12px;padding:4px 10px;cursor:pointer;">🗑</button>' +
+          '</div>' +
+        '</div>' +
+        // Resumo rápido
+        (c.acoes.length ? '<div style="display:flex;gap:0;border-bottom:1px solid var(--border);">' +
+          '<div style="flex:1;padding:10px 14px;text-align:center;border-right:1px solid var(--border);">' +
+            '<div style="font-size:10px;color:var(--text-muted);">Custo Total</div>' +
+            '<div style="font-size:13px;font-weight:800;">' + fmt(totalCusto) + '</div>' +
+          '</div>' +
+          '<div style="flex:1;padding:10px 14px;text-align:center;border-right:1px solid var(--border);">' +
+            '<div style="font-size:10px;color:var(--text-muted);">Valor Atual</div>' +
+            '<div style="font-size:13px;font-weight:800;">' + fmt(totalAtual) + '</div>' +
+          '</div>' +
+          '<div style="flex:1;padding:10px 14px;text-align:center;">' +
+            '<div style="font-size:10px;color:var(--text-muted);">Variação</div>' +
+            '<div style="font-size:13px;font-weight:800;color:' + corVar + ';">' + fmtPct(varTotal) + '</div>' +
+          '</div>' +
+        '</div>' : '') +
+        // Tabela de ações
+        '<div style="overflow-x:auto;">' +
+        '<table style="width:100%;border-collapse:collapse;min-width:520px;">' +
+          '<thead><tr style="background:var(--bg);">' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:left;font-weight:700;">Ticker</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Qtd</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Custo Unit.</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Preço Atual</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Total Custo</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Total Atual</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Var%</th>' +
+            '<th style="width:28px;"></th>' +
+          '</tr></thead>' +
+          '<tbody>' + linhasAcoes + rodape + '</tbody>' +
+        '</table></div>' +
+        // Form adicionar ação
+        '<div style="padding:12px 14px;background:var(--bg);border-top:1px solid var(--border);">' +
+          '<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">+ Adicionar ação</div>' +
+          '<div style="display:grid;grid-template-columns:2fr 1.5fr 1.5fr auto;gap:6px;align-items:end;">' +
+            '<div><label style="font-size:10px;color:var(--text-muted);">Ticker</label>' +
+              '<input type="text" id="ci-ticker-' + c.id + '" placeholder="BBAS3" maxlength="10" oninput="this.value=this.value.toUpperCase()" style="width:100%;margin-top:3px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-weight:700;background:var(--surface);color:var(--text);"/></div>' +
+            '<div><label style="font-size:10px;color:var(--text-muted);">Quantidade</label>' +
+              '<input type="number" id="ci-qtd-' + c.id + '" placeholder="0" min="0.001" step="any" style="width:100%;margin-top:3px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"/></div>' +
+            '<div><label style="font-size:10px;color:var(--text-muted);">Custo Unit. R$</label>' +
+              '<input type="number" id="ci-custo-' + c.id + '" placeholder="0,00" min="0.01" step="0.01" style="width:100%;margin-top:3px;padding:8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;background:var(--surface);color:var(--text);"/></div>' +
+            '<button onclick="adicionarAcaoCarteira(\'' + c.id + '\')" style="padding:8px 12px;background:var(--primary);color:white;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;margin-top:13px;">+</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
   }
 
   // ── SETAS DE NAVEGAÇÃO DAS TABS ──
