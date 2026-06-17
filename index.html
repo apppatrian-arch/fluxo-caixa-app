@@ -977,8 +977,8 @@
     <!-- ── PAINEL AÇÕES ── -->
     <div id="painel-acoes" style="display:none;">
 
-      <!-- Token brapi.dev -->
-      <div id="acoes-token-box" style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+      <!-- Token brapi.dev — visível por padrão, ocultado via JS se já tiver token -->
+      <div id="acoes-token-box" style="display:block;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🔑 Token brapi.dev necessário</div>
         <div style="font-size:12px;color:#78350f;margin-bottom:10px;">
           Acesse <strong>brapi.dev</strong>, crie uma conta gratuita e cole seu token abaixo.
@@ -987,6 +987,9 @@
           <input type="text" id="acoes-token-input" placeholder="Cole seu token aqui..."
             style="flex:1;padding:9px 12px;border:1.5px solid #f59e0b;border-radius:8px;font-size:13px;background:white;color:#1c1c1e;" />
           <button onclick="salvarTokenAcoes()" style="padding:9px 14px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Salvar</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#92400e;">
+          Já tem token? <button onclick="document.getElementById('acoes-token-box').style.display='none'" style="background:none;border:none;color:#b45309;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;">Fechar este aviso</button>
         </div>
       </div>
 
