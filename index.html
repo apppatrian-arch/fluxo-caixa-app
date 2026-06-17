@@ -698,6 +698,7 @@
         <button class="tab" id="tab-pessoas" onclick="setTab('pessoas')">Pessoas</button>
         <button class="tab" id="tab-historico" onclick="setTab('historico')">Histórico</button>
         <button class="tab" id="tab-paulistinha" onclick="setTab('paulistinha')" style="white-space:nowrap;">🚬 Paulistinha</button>
+        <button class="tab" id="tab-acoes" onclick="setTab('acoes')" style="white-space:nowrap;">📈 Ações</button>
       </div>
       <button class="tabs-arrow" id="tabs-next" onclick="scrollTabs(1)" title="Próximo">›</button>
     </div>
@@ -972,6 +973,43 @@
       </div>
 
     </div><!-- /painel-paulistinha -->
+
+    <!-- ── PAINEL AÇÕES ── -->
+    <div id="painel-acoes" style="display:none;">
+
+      <!-- Busca cotação atual -->
+      <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Cotação Atual</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input type="text" id="acoes-ticker" placeholder="Ex: BBAS3, PETR4, VALE3..." maxlength="10"
+            style="flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-weight:700;text-transform:uppercase;background:var(--bg);color:var(--text);"
+            oninput="this.value=this.value.toUpperCase()"
+            onkeydown="if(event.key==='Enter') buscarCotacao()" />
+          <button onclick="buscarCotacao()" style="padding:11px 18px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;">Buscar</button>
+        </div>
+        <div id="acoes-resultado"></div>
+      </div>
+
+      <!-- Consulta por data -->
+      <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Preço em Data Anterior</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Ticker</label>
+            <input type="text" id="acoes-ticker-hist" placeholder="Ex: BBAS3" maxlength="10"
+              style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:700;text-transform:uppercase;background:var(--bg);color:var(--text);"
+              oninput="this.value=this.value.toUpperCase()" />
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Data</label>
+            <input type="date" id="acoes-data-hist" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
+          </div>
+        </div>
+        <button onclick="buscarCotacaoHistorica()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Consultar</button>
+        <div id="acoes-resultado-hist" style="margin-top:12px;"></div>
+      </div>
+
+    </div><!-- /painel-acoes -->
 
   </div>
 </div>
@@ -1373,7 +1411,7 @@
   //  NAVEGAÇÃO
   // ══════════════════════════════════════════
   function setTab(tab) {
-    ['lancamentos', 'novo', 'recorrentes', 'pessoas', 'historico', 'paulistinha'].forEach(t => {
+    ['lancamentos', 'novo', 'recorrentes', 'pessoas', 'historico', 'paulistinha', 'acoes'].forEach(t => {
       document.getElementById('painel-' + t).style.display = (t === tab) ? 'block' : 'none';
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     });
@@ -1383,6 +1421,7 @@
     if (tab === 'pessoas') renderPessoas();
     if (tab === 'recorrentes') renderRecorrentes();
     if (tab === 'paulistinha') initPaulistinha();
+    if (tab === 'acoes') initAcoes();
     if (tab === 'novo') {
       setTipo(tipoAtual);
       popularSelectPessoa();
@@ -2550,6 +2589,148 @@
         }
       });
     }).catch(() => {});
+  }
+
+  // ══════════════════════════════════════════
+  //  AÇÕES B3 — brapi.dev
+  // ══════════════════════════════════════════
+  function initAcoes() {
+    const hoje = new Date();
+    const ontem = new Date(hoje);
+    ontem.setDate(ontem.getDate() - 1);
+    const sOntem = ontem.getFullYear() + '-' + String(ontem.getMonth()+1).padStart(2,'0') + '-' + String(ontem.getDate()).padStart(2,'0');
+    document.getElementById('acoes-data-hist').value = sOntem;
+    document.getElementById('acoes-data-hist').max   = sOntem;
+  }
+
+  function acoesLoading(elId) {
+    document.getElementById(elId).innerHTML =
+      '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">⏳ Consultando...</div>';
+  }
+
+  function acoesErro(elId, msg) {
+    document.getElementById(elId).innerHTML =
+      '<div style="padding:12px;background:#fee2e2;border-radius:10px;color:#dc2626;font-size:13px;">❌ ' + msg + '</div>';
+  }
+
+  async function buscarCotacao() {
+    const ticker = document.getElementById('acoes-ticker').value.trim().toUpperCase();
+    if (!ticker) { alert('Informe o ticker da ação.'); return; }
+    acoesLoading('acoes-resultado');
+    try {
+      const r = await fetch('https://brapi.dev/api/quote/' + ticker + '?fundamental=false');
+      if (!r.ok) throw new Error('Ticker não encontrado ou API indisponível.');
+      const data = await r.json();
+      const q = data.results && data.results[0];
+      if (!q) throw new Error('Nenhum resultado para "' + ticker + '".');
+
+      const preco     = Number(q.regularMarketPrice   || 0);
+      const variacao  = Number(q.regularMarketChange  || 0);
+      const varPct    = Number(q.regularMarketChangePercent || 0);
+      const abertura  = Number(q.regularMarketOpen    || 0);
+      const minDia    = Number(q.regularMarketDayLow  || 0);
+      const maxDia    = Number(q.regularMarketDayHigh || 0);
+      const volume    = Number(q.regularMarketVolume  || 0);
+      const nome      = q.longName || q.shortName || ticker;
+      const corVar    = variacao >= 0 ? 'var(--success)' : 'var(--danger)';
+      const sinalVar  = variacao >= 0 ? '+' : '';
+      const hora      = q.regularMarketTime ? new Date(q.regularMarketTime * 1000).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
+
+      document.getElementById('acoes-resultado').innerHTML =
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;">' +
+          '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin-bottom:2px;">' + ticker + (hora?' · '+hora:'') + '</div>' +
+          '<div style="font-size:13px;margin-bottom:10px;color:var(--text);">' + nome + '</div>' +
+          '<div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px;">' +
+            '<div style="font-size:32px;font-weight:800;color:var(--text);">R$ ' + preco.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '<div style="font-size:15px;font-weight:700;color:' + corVar + ';margin-bottom:4px;">' + sinalVar + varPct.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%</div>' +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Abertura</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + abertura.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Variação dia</div>' +
+              '<div style="font-size:13px;font-weight:700;color:' + corVar + ';">' + sinalVar + 'R$ ' + Math.abs(variacao).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Mínima do dia</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + minDia.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Máxima do dia</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + maxDia.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+          '</div>' +
+          (volume ? '<div style="margin-top:8px;font-size:11px;color:var(--text-muted);text-align:right;">Volume: ' + volume.toLocaleString('pt-BR') + '</div>' : '') +
+        '</div>';
+    } catch(e) {
+      acoesErro('acoes-resultado', e.message);
+    }
+  }
+
+  async function buscarCotacaoHistorica() {
+    const ticker = document.getElementById('acoes-ticker-hist').value.trim().toUpperCase();
+    const data   = document.getElementById('acoes-data-hist').value;
+    if (!ticker) { alert('Informe o ticker.'); return; }
+    if (!data)   { alert('Informe a data.'); return; }
+    acoesLoading('acoes-resultado-hist');
+    try {
+      // Busca histórico de 5 anos para cobrir qualquer data solicitada
+      const r = await fetch('https://brapi.dev/api/quote/' + ticker + '?range=5y&interval=1d&fundamental=false');
+      if (!r.ok) throw new Error('Ticker não encontrado ou API indisponível.');
+      const json = await r.json();
+      const q = json.results && json.results[0];
+      if (!q || !q.historicalDataPrice || !q.historicalDataPrice.length)
+        throw new Error('Histórico não disponível para "' + ticker + '".');
+
+      const hist = q.historicalDataPrice;
+      const alvo = new Date(data + 'T12:00:00').getTime() / 1000;
+
+      // Encontra o registro mais próximo da data solicitada
+      let melhor = hist[0];
+      let menorDiff = Math.abs(hist[0].date - alvo);
+      hist.forEach(function(h) {
+        const diff = Math.abs(h.date - alvo);
+        if (diff < menorDiff) { menorDiff = diff; melhor = h; }
+      });
+
+      const dataReal = new Date(melhor.date * 1000).toLocaleDateString('pt-BR');
+      const preco    = Number(melhor.close || melhor.open || 0);
+      const min      = Number(melhor.low   || 0);
+      const max      = Number(melhor.high  || 0);
+      const abertura = Number(melhor.open  || 0);
+      const volume   = Number(melhor.volume|| 0);
+      const nome     = q.longName || q.shortName || ticker;
+
+      document.getElementById('acoes-resultado-hist').innerHTML =
+        '<div style="background:var(--bg);border-radius:12px;padding:16px;">' +
+          '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin-bottom:2px;">' + ticker + ' · ' + dataReal + '</div>' +
+          '<div style="font-size:13px;margin-bottom:10px;color:var(--text);">' + nome + '</div>' +
+          '<div style="font-size:30px;font-weight:800;color:var(--text);margin-bottom:14px;">R$ ' + preco.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Abertura</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + abertura.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Fechamento</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + preco.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Mínima</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + min.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+            '<div style="background:var(--surface);border-radius:8px;padding:8px 10px;">' +
+              '<div style="font-size:10px;color:var(--text-muted);">Máxima</div>' +
+              '<div style="font-size:13px;font-weight:700;">R$ ' + max.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>' +
+            '</div>' +
+          '</div>' +
+          (volume ? '<div style="margin-top:8px;font-size:11px;color:var(--text-muted);text-align:right;">Volume: ' + volume.toLocaleString('pt-BR') + '</div>' : '') +
+        '</div>';
+    } catch(e) {
+      acoesErro('acoes-resultado-hist', e.message);
+    }
   }
 
   // ── SETAS DE NAVEGAÇÃO DAS TABS ──
