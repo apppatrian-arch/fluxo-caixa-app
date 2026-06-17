@@ -2911,26 +2911,31 @@
     const c = carteiras.find(x => x.id === carteiraId);
     if (!c || !c.acoes.length) { renderCarteiras(); return; }
 
-    const tickers = [...new Set(c.acoes.map(a => a.ticker))].join(',');
     const elBtn = document.getElementById('cbtn-atualizar-' + carteiraId);
     if (elBtn) { elBtn.textContent = '⏳'; elBtn.disabled = true; }
 
-    try {
-      const r = await fetch(brapiUrl('/quote/' + tickers + '?fundamental=false'));
-      if (!r.ok) throw new Error('Erro ' + r.status);
-      const data = await r.json();
-      const precos = {};
-      (data.results || []).forEach(q => {
-        const sym = (q.symbol || '').replace('.SA','').toUpperCase();
-        if (q.regularMarketPrice) precos[sym] = Number(q.regularMarketPrice);
-      });
-      c.acoes.forEach(a => {
-        const sym = a.ticker.replace('.SA','').toUpperCase();
-        if (precos[sym]) a.precoAtual = precos[sym];
-      });
-      salvarCarteiras();
-    } catch(e) { /* mantém preço anterior */ }
+    // Busca cada ticker individualmente em paralelo para evitar falha silenciosa no batch
+    const uniqueTickers = [...new Set(c.acoes.map(a => a.ticker.replace('.SA','').toUpperCase()))];
+    const precos = {};
 
+    await Promise.all(uniqueTickers.map(async ticker => {
+      try {
+        const r = await fetch(brapiUrl('/quote/' + ticker + '?fundamental=false'));
+        if (!r.ok) return;
+        const data = await r.json();
+        const q = data.results && data.results[0];
+        if (q && q.regularMarketPrice) {
+          const sym = (q.symbol || ticker).replace('.SA','').toUpperCase();
+          precos[sym] = Number(q.regularMarketPrice);
+        }
+      } catch(e) { /* ignora erro individual */ }
+    }));
+
+    c.acoes.forEach(a => {
+      const sym = a.ticker.replace('.SA','').toUpperCase();
+      if (precos[sym]) a.precoAtual = precos[sym];
+    });
+    salvarCarteiras();
     renderCarteiras();
   }
 
