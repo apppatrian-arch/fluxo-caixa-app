@@ -2887,8 +2887,14 @@
       if (!r.ok) throw new Error('Erro ' + r.status);
       const data = await r.json();
       const precos = {};
-      (data.results || []).forEach(q => { precos[q.symbol] = Number(q.regularMarketPrice || 0); });
-      c.acoes.forEach(a => { if (precos[a.ticker]) a.precoAtual = precos[a.ticker]; });
+      (data.results || []).forEach(q => {
+        const sym = (q.symbol || '').replace('.SA','').toUpperCase();
+        if (q.regularMarketPrice) precos[sym] = Number(q.regularMarketPrice);
+      });
+      c.acoes.forEach(a => {
+        const sym = a.ticker.replace('.SA','').toUpperCase();
+        if (precos[sym]) a.precoAtual = precos[sym];
+      });
       salvarCarteiras();
     } catch(e) { /* mantém preço anterior */ }
 
