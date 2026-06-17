@@ -977,6 +977,19 @@
     <!-- ── PAINEL AÇÕES ── -->
     <div id="painel-acoes" style="display:none;">
 
+      <!-- Token brapi.dev -->
+      <div id="acoes-token-box" style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🔑 Token brapi.dev necessário</div>
+        <div style="font-size:12px;color:#78350f;margin-bottom:10px;">
+          Acesse <strong>brapi.dev</strong>, crie uma conta gratuita e cole seu token abaixo.
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="acoes-token-input" placeholder="Cole seu token aqui..."
+            style="flex:1;padding:9px 12px;border:1.5px solid #f59e0b;border-radius:8px;font-size:13px;background:white;color:#1c1c1e;" />
+          <button onclick="salvarTokenAcoes()" style="padding:9px 14px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Salvar</button>
+        </div>
+      </div>
+
       <!-- Busca cotação atual -->
       <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Cotação Atual</div>
@@ -2601,6 +2614,28 @@
     const sOntem = ontem.getFullYear() + '-' + String(ontem.getMonth()+1).padStart(2,'0') + '-' + String(ontem.getDate()).padStart(2,'0');
     document.getElementById('acoes-data-hist').value = sOntem;
     document.getElementById('acoes-data-hist').max   = sOntem;
+
+    const token = localStorage.getItem('fc_brapi_token') || '';
+    if (token) {
+      document.getElementById('acoes-token-box').style.display = 'none';
+    } else {
+      document.getElementById('acoes-token-box').style.display = 'block';
+      document.getElementById('acoes-token-input').value = '';
+    }
+  }
+
+  function salvarTokenAcoes() {
+    const token = document.getElementById('acoes-token-input').value.trim();
+    if (!token) { alert('Cole o token antes de salvar.'); return; }
+    localStorage.setItem('fc_brapi_token', token);
+    document.getElementById('acoes-token-box').style.display = 'none';
+    alert('✅ Token salvo! Agora você pode consultar as ações.');
+  }
+
+  function brapiUrl(path) {
+    const token = localStorage.getItem('fc_brapi_token') || '';
+    const sep   = path.includes('?') ? '&' : '?';
+    return 'https://brapi.dev/api' + path + (token ? sep + 'token=' + token : '');
   }
 
   function acoesLoading(elId) {
@@ -2618,8 +2653,8 @@
     if (!ticker) { alert('Informe o ticker da ação.'); return; }
     acoesLoading('acoes-resultado');
     try {
-      const r = await fetch('https://brapi.dev/api/quote/' + ticker + '?fundamental=false');
-      if (!r.ok) throw new Error('Ticker não encontrado ou API indisponível.');
+      const r = await fetch(brapiUrl('/quote/' + ticker + '?fundamental=false'));
+      if (!r.ok) throw new Error('Erro ' + r.status + ' — verifique o token ou o ticker informado.');
       const data = await r.json();
       const q = data.results && data.results[0];
       if (!q) throw new Error('Nenhum resultado para "' + ticker + '".');
@@ -2677,8 +2712,8 @@
     acoesLoading('acoes-resultado-hist');
     try {
       // Busca histórico de 5 anos para cobrir qualquer data solicitada
-      const r = await fetch('https://brapi.dev/api/quote/' + ticker + '?range=5y&interval=1d&fundamental=false');
-      if (!r.ok) throw new Error('Ticker não encontrado ou API indisponível.');
+      const r = await fetch(brapiUrl('/quote/' + ticker + '?range=5y&interval=1d&fundamental=false'));
+      if (!r.ok) throw new Error('Erro ' + r.status + ' — verifique o token ou o ticker informado.');
       const json = await r.json();
       const q = json.results && json.results[0];
       if (!q || !q.historicalDataPrice || !q.historicalDataPrice.length)

@@ -1,4 +1,4 @@
-const CACHE = 'fluxo-caixa-v26';
+const CACHE = 'fluxo-caixa-v27';
 const ASSETS = [
   './index.html',
   './manifest.json',
