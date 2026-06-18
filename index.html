@@ -666,8 +666,8 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v43</strong></div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">18/06/2026 às 19:15</div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v44</strong></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">18/06/2026 às 19:45</div>
           </div>
         </div>
       </div>
@@ -3010,14 +3010,22 @@
         const q = data.results && data.results[0];
         if (q && q.regularMarketPrice) {
           const sym = (q.symbol || ticker).replace('.SA','').toUpperCase();
-          precos[sym] = Number(q.regularMarketPrice);
+          precos[sym] = {
+            preco:    Number(q.regularMarketPrice),
+            varDiaPct: q.regularMarketChangePercent != null ? Number(q.regularMarketChangePercent) : null,
+            varDiaVal: q.regularMarketChange        != null ? Number(q.regularMarketChange)        : null,
+          };
         }
       } catch(e) { /* ignora erro individual */ }
     }));
 
     c.acoes.forEach(a => {
       const sym = a.ticker.replace('.SA','').toUpperCase();
-      if (precos[sym]) a.precoAtual = precos[sym];
+      if (precos[sym]) {
+        a.precoAtual   = precos[sym].preco;
+        a.varDiaPct    = precos[sym].varDiaPct;
+        a.varDiaVal    = precos[sym].varDiaVal;
+      }
     });
     salvarCarteiras();
     renderCarteiras();
@@ -3049,10 +3057,16 @@
           '<button onclick="editarAcaoCarteira(\'' + c.id + '\',\'' + a.id + '\')" title="Alterar" style="background:#fef3c7;border:none;border-radius:6px;color:#92400e;font-size:13px;cursor:pointer;padding:4px 7px;">✏️</button>' +
           '<button onclick="removerAcaoCarteira(\'' + c.id + '\',\'' + a.id + '\')" title="Excluir" style="background:#fee2e2;border:none;border-radius:6px;color:#dc2626;font-size:13px;cursor:pointer;padding:4px 7px;">🗑</button>' +
           '</div>';
-        const saldoAcao  = a.qtd * (a.precoAtual || a.custo);
-        const lucroAcao  = tAtual - tCusto;
-        const corLucro   = lucroAcao >= 0 ? 'var(--success)' : 'var(--danger)';
-        const prefLucro  = lucroAcao >= 0 ? '+' : '';
+        const saldoAcao   = a.qtd * (a.precoAtual || a.custo);
+        const lucroAcao   = tAtual - tCusto;
+        const corLucro    = lucroAcao >= 0 ? 'var(--success)' : 'var(--danger)';
+        const prefLucro   = lucroAcao >= 0 ? '+' : '';
+        const temDia      = a.precoAtual && a.varDiaPct != null;
+        const corDia      = temDia ? (a.varDiaPct >= 0 ? 'var(--success)' : 'var(--danger)') : 'var(--text-muted)';
+        const prefDia     = temDia && a.varDiaPct >= 0 ? '+' : '';
+        const saldoDia    = temDia ? a.qtd * a.varDiaVal : null;
+        const corSaldoDia = saldoDia != null ? (saldoDia >= 0 ? 'var(--success)' : 'var(--danger)') : 'var(--text-muted)';
+        const prefSaldoDia= saldoDia != null && saldoDia >= 0 ? '+' : '';
         return '<tr style="border-bottom:1px solid var(--border);">' +
           '<td style="padding:8px;font-size:12px;font-weight:700;white-space:nowrap;">' + a.ticker + '</td>' +
           '<td style="padding:8px;font-size:12px;text-align:right;">' + Number(a.qtd).toLocaleString('pt-BR') + '</td>' +
@@ -3061,13 +3075,20 @@
           '<td style="padding:8px;font-size:12px;font-weight:700;text-align:right;color:' + (a.precoAtual ? 'var(--text)' : 'var(--text-muted)') + ';">' + fmt(saldoAcao) + '</td>' +
           '<td style="padding:8px;font-size:12px;font-weight:700;text-align:right;color:' + (a.precoAtual ? corLucro : 'var(--text-muted)') + ';">' + (a.precoAtual ? prefLucro + fmt(lucroAcao) : '—') + '</td>' +
           '<td style="padding:8px;font-size:11px;font-weight:700;text-align:right;color:' + corAcao + ';">' + fmtPct(varAcao) + '</td>' +
+          '<td style="padding:8px;font-size:11px;font-weight:700;text-align:right;color:' + corDia + ';">' + (temDia ? prefDia + fmtPct(a.varDiaPct) : '—') + '</td>' +
+          '<td style="padding:8px;font-size:11px;font-weight:700;text-align:right;color:' + corDia + ';">' + (temDia ? prefDia + fmt(a.varDiaVal) : '—') + '</td>' +
+          '<td style="padding:8px;font-size:11px;font-weight:700;text-align:right;color:' + corSaldoDia + ';">' + (saldoDia != null ? prefSaldoDia + fmt(saldoDia) : '—') + '</td>' +
           '<td style="padding:8px;">' + acoes + '</td>' +
         '</tr>';
-      }).join('') : '<tr><td colspan="8" style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px;">Nenhuma ação. Adicione abaixo.</td></tr>';
+      }).join('') : '<tr><td colspan="11" style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px;">Nenhuma ação. Adicione abaixo.</td></tr>';
 
-      const lucroTotal  = totalAtual - totalCusto;
-      const corLucroTot = lucroTotal >= 0 ? 'var(--success)' : 'var(--danger)';
-      const prefLucroTot= lucroTotal >= 0 ? '+' : '';
+      const lucroTotal   = totalAtual - totalCusto;
+      const corLucroTot  = lucroTotal >= 0 ? 'var(--success)' : 'var(--danger)';
+      const prefLucroTot = lucroTotal >= 0 ? '+' : '';
+      const saldoDiaTotal= c.acoes.reduce((s, a) => a.varDiaVal != null ? s + a.qtd * a.varDiaVal : s, 0);
+      const temDiaTot    = c.acoes.some(a => a.varDiaVal != null);
+      const corDiaTot    = saldoDiaTotal >= 0 ? 'var(--success)' : 'var(--danger)';
+      const prefDiaTot   = saldoDiaTotal >= 0 ? '+' : '';
       const rodape = c.acoes.length ? '<tr style="background:var(--bg);">' +
         '<td colspan="2" style="padding:8px;font-size:12px;font-weight:700;">Total</td>' +
         '<td style="padding:8px;font-size:11px;color:var(--text-muted);text-align:right;">' + fmt(totalCusto) + '</td>' +
@@ -3075,6 +3096,8 @@
         '<td style="padding:8px;font-size:12px;font-weight:800;text-align:right;">' + fmt(totalAtual) + '</td>' +
         '<td style="padding:8px;font-size:12px;font-weight:800;text-align:right;color:' + corLucroTot + ';">' + prefLucroTot + fmt(lucroTotal) + '</td>' +
         '<td style="padding:8px;font-size:12px;font-weight:800;text-align:right;color:' + corVar + ';">' + fmtPct(varTotal) + '</td>' +
+        '<td colspan="2" style="padding:8px;font-size:11px;color:var(--text-muted);text-align:right;">—</td>' +
+        '<td style="padding:8px;font-size:12px;font-weight:800;text-align:right;color:' + (temDiaTot ? corDiaTot : 'var(--text-muted)') + ';">' + (temDiaTot ? prefDiaTot + fmt(saldoDiaTotal) : '—') + '</td>' +
         '<td></td></tr>' : '';
 
       return '<div style="border:1.5px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;">' +
@@ -3113,6 +3136,9 @@
             '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Saldo</th>' +
             '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Lucro/Prej.</th>' +
             '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Var%</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Var.Dia%</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Var.Dia R$</th>' +
+            '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:right;font-weight:700;">Saldo Dia</th>' +
             '<th style="padding:7px 8px;font-size:10px;color:var(--text-muted);text-align:center;font-weight:700;">Ações</th>' +
           '</tr></thead>' +
           '<tbody>' + linhasAcoes + rodape + '</tbody>' +
