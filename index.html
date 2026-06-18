@@ -977,8 +977,8 @@
     <!-- ── PAINEL AÇÕES ── -->
     <div id="painel-acoes" style="display:none;">
 
-      <!-- Token brapi.dev — visível por padrão, ocultado via JS se já tiver token -->
-      <div id="acoes-token-box" style="display:block;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+      <!-- Token brapi.dev -->
+      <div id="acoes-token-box" style="display:none;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🔑 Token brapi.dev necessário</div>
         <div style="font-size:12px;color:#78350f;margin-bottom:10px;">
           Acesse <strong>brapi.dev</strong>, crie uma conta gratuita e cole seu token abaixo.
@@ -988,9 +988,21 @@
             style="flex:1;padding:9px 12px;border:1.5px solid #f59e0b;border-radius:8px;font-size:13px;background:white;color:#1c1c1e;" />
           <button onclick="salvarTokenAcoes()" style="padding:9px 14px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Salvar</button>
         </div>
-        <div style="margin-top:8px;font-size:11px;color:#92400e;">
-          Já tem token? <button onclick="document.getElementById('acoes-token-box').style.display='none'" style="background:none;border:none;color:#b45309;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;">Fechar este aviso</button>
+      </div>
+
+      <!-- Token salvo — exibido quando há token gravado -->
+      <div id="acoes-token-salvo" style="display:none;background:#f0fdf4;border:1.5px solid #22c55e;border-radius:14px;padding:12px 16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#15803d;">🔑 Token brapi.dev gravado</div>
+            <div id="acoes-token-data" style="font-size:11px;color:#166534;margin-top:2px;"></div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="copiarTokenAcoes()" style="padding:7px 12px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copiar</button>
+            <button onclick="alterarTokenAcoes()" style="padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">✏️ Alterar</button>
+          </div>
         </div>
+        <div id="acoes-token-preview" style="margin-top:8px;font-size:11px;font-family:monospace;color:#15803d;word-break:break-all;background:#dcfce7;border-radius:6px;padding:6px 8px;"></div>
       </div>
 
       <!-- Busca cotação atual -->
@@ -2675,23 +2687,58 @@
     document.getElementById('acoes-data-hist').value = sOntem;
     document.getElementById('acoes-data-hist').max   = sOntem;
 
-    const token = localStorage.getItem('fc_brapi_token') || '';
-    if (token) {
-      document.getElementById('acoes-token-box').style.display = 'none';
-    } else {
-      document.getElementById('acoes-token-box').style.display = 'block';
-      document.getElementById('acoes-token-input').value = '';
-    }
+    renderTokenAcoes();
     carteiras = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
     renderCarteiras();
+  }
+
+  function renderTokenAcoes() {
+    const token   = localStorage.getItem('fc_brapi_token') || '';
+    const boxCad  = document.getElementById('acoes-token-box');
+    const boxSalvo= document.getElementById('acoes-token-salvo');
+    if (token) {
+      boxCad.style.display   = 'none';
+      boxSalvo.style.display = 'block';
+      // Preview: mostra primeiros 6 e últimos 4 caracteres
+      const preview = token.length > 12 ? token.slice(0,6) + '••••••••' + token.slice(-4) : token;
+      document.getElementById('acoes-token-preview').textContent = preview;
+      const dataStr = localStorage.getItem('fc_brapi_token_data') || '';
+      document.getElementById('acoes-token-data').textContent = dataStr ? 'Salvo em: ' + dataStr : '';
+    } else {
+      boxCad.style.display   = 'block';
+      boxSalvo.style.display = 'none';
+      document.getElementById('acoes-token-input').value = '';
+    }
   }
 
   function salvarTokenAcoes() {
     const token = document.getElementById('acoes-token-input').value.trim();
     if (!token) { alert('Cole o token antes de salvar.'); return; }
     localStorage.setItem('fc_brapi_token', token);
-    document.getElementById('acoes-token-box').style.display = 'none';
-    alert('✅ Token salvo! Agora você pode consultar as ações.');
+    const agora = new Date();
+    const dataStr = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    localStorage.setItem('fc_brapi_token_data', dataStr);
+    renderTokenAcoes();
+  }
+
+  function copiarTokenAcoes() {
+    const token = localStorage.getItem('fc_brapi_token') || '';
+    if (!token) return;
+    navigator.clipboard.writeText(token).then(() => {
+      const btn = document.querySelector('#acoes-token-salvo button');
+      const orig = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = '✅ Copiado!'; setTimeout(() => btn.textContent = orig, 2000); }
+    }).catch(() => {
+      alert('Token: ' + token);
+    });
+  }
+
+  function alterarTokenAcoes() {
+    document.getElementById('acoes-token-salvo').style.display = 'none';
+    document.getElementById('acoes-token-box').style.display   = 'block';
+    document.getElementById('acoes-token-input').value = localStorage.getItem('fc_brapi_token') || '';
+    document.getElementById('acoes-token-input').focus();
+    document.getElementById('acoes-token-input').select();
   }
 
   function brapiUrl(path) {
