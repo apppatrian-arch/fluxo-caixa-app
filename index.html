@@ -2839,6 +2839,9 @@
     const nome = document.getElementById('carteira-nome').value.trim();
     const editId = document.getElementById('carteira-edit-id').value;
     if (!nome) { alert('Informe o nome da carteira.'); return; }
+    const nomeNorm = nome.toLowerCase();
+    const duplicada = carteiras.some(x => x.nome.toLowerCase() === nomeNorm && x.id !== editId);
+    if (duplicada) { alert('Já existe uma carteira com o nome "' + nome + '". Escolha um nome diferente.'); return; }
     if (editId) {
       const c = carteiras.find(x => x.id === editId);
       if (c) c.nome = nome;
