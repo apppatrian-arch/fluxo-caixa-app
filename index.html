@@ -1400,12 +1400,24 @@
       (categoriasCustom.pag || []).forEach(n => catRows.push(['pag', n, (categoriasOcultas.pag||[]).includes(n)?'sim':'', (categoriasPromovidas.pag||[]).includes(n)?'sim':'']));
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Categorias');
 
+      // Carteiras de ações
+      const carteirasSalvas = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+      const cartRows = [['CarteiraID','CarteiraNome','AcaoID','Ticker','Quantidade','CustoUnitario','PrecoAtual']];
+      carteirasSalvas.forEach(c => {
+        (c.acoes || []).forEach(a => {
+          cartRows.push([c.id, c.nome, a.id, a.ticker, a.qtd, a.custo, a.precoAtual || '']);
+        });
+        if (!c.acoes || !c.acoes.length) cartRows.push([c.id, c.nome, '', '', '', '', '']);
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cartRows), 'Carteiras');
+
       const d = new Date();
       const sData = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       const nomeArquivo = 'fluxo-caixa-backup-' + sData + '.xlsx';
       XLSX.writeFile(wb, nomeArquivo);
 
-      alert('✅ Backup gerado com sucesso!\n\n📄 Arquivo: ' + nomeArquivo + '\n📁 Salvo na pasta Downloads do dispositivo.\n\n📊 ' + lancamentos.length + ' lançamentos\n👤 ' + pessoas.length + ' pessoas\n🔁 ' + recorrentes.length + ' recorrentes');
+      const totalAcoes = carteirasSalvas.reduce((s, c) => s + (c.acoes||[]).length, 0);
+      alert('✅ Backup gerado com sucesso!\n\n📄 Arquivo: ' + nomeArquivo + '\n📁 Salvo na pasta Downloads do dispositivo.\n\n📊 ' + lancamentos.length + ' lançamentos\n👤 ' + pessoas.length + ' pessoas\n🔁 ' + recorrentes.length + ' recorrentes\n💼 ' + carteirasSalvas.length + ' carteiras (' + totalAcoes + ' ações)');
     } catch(err) {
       alert('❌ Erro ao gerar backup:\n' + err.message);
     }
@@ -1428,7 +1440,7 @@
         }
 
         // Lançamentos
-        const wsLanc = wb.Sheets['Lançamentos'];
+        const wsLanc = wb.Sheets['Lancamentos'];
         if (wsLanc) {
           const rows = XLSX.utils.sheet_to_json(wsLanc, {header:1}).slice(1);
           lancamentos = rows.filter(r=>r[0]).map(r=>{
@@ -1461,10 +1473,25 @@
           });
         }
 
+        // Carteiras de ações
+        const wsCart = wb.Sheets['Carteiras'];
+        if (wsCart) {
+          const rows = XLSX.utils.sheet_to_json(wsCart, {header:1}).slice(1);
+          const carteiraMap = {};
+          rows.filter(r => r[0]).forEach(r => {
+            const cId = String(r[0]), cNome = String(r[1]||'');
+            if (!carteiraMap[cId]) carteiraMap[cId] = { id: cId, nome: cNome, acoes: [] };
+            if (r[2]) carteiraMap[cId].acoes.push({ id: String(r[2]), ticker: String(r[3]||''), qtd: Number(r[4])||0, custo: Number(r[5])||0, precoAtual: r[6] ? Number(r[6]) : undefined });
+          });
+          localStorage.setItem('fc_carteiras', JSON.stringify(Object.values(carteiraMap)));
+        }
+
         sincronizar();
         document.getElementById('menu-perfil').style.display = 'none';
         renderLancamentos();
-        alert('✅ Backup importado com sucesso!\n\n' + lancamentos.length + ' lançamentos, ' + pessoas.length + ' pessoas, ' + recorrentes.length + ' recorrentes.');
+        const carteiraImport = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+        const totalAcoesImport = carteiraImport.reduce((s, c) => s + (c.acoes||[]).length, 0);
+        alert('✅ Backup importado com sucesso!\n\n' + lancamentos.length + ' lançamentos, ' + pessoas.length + ' pessoas, ' + recorrentes.length + ' recorrentes, ' + carteiraImport.length + ' carteiras (' + totalAcoesImport + ' ações).');
       } catch(err) {
         alert('❌ Erro ao importar backup:\n' + err.message);
       }
