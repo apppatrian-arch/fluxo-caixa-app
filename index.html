@@ -2765,13 +2765,30 @@
     if (!data)   { alert('Informe a data.'); return; }
     acoesLoading('acoes-resultado-hist');
     try {
-      // Busca histórico de 5 anos para cobrir qualquer data solicitada
-      const r = await fetch(brapiUrl('/quote/' + ticker + '?range=5y&interval=1d&fundamental=false'));
-      if (!r.ok) throw new Error('Erro ' + r.status + ' — verifique o token ou o ticker informado.');
-      const json = await r.json();
+      // Calcula range mínimo necessário com base na data solicitada
+      const hoje     = new Date();
+      const alvoDate = new Date(data + 'T12:00:00');
+      const diasAtras = Math.ceil((hoje - alvoDate) / (1000 * 60 * 60 * 24));
+      let range = '1mo';
+      if (diasAtras > 25)   range = '3mo';
+      if (diasAtras > 85)   range = '6mo';
+      if (diasAtras > 175)  range = '1y';
+      if (diasAtras > 350)  range = '2y';
+      if (diasAtras > 700)  range = '5y';
+
+      // Tenta o range calculado; se der erro 400, tenta ranges menores progressivamente
+      const ranges = [range, '1y', '2y', '5y', 'max'];
+      let json = null;
+      for (const rng of ranges) {
+        const r = await fetch(brapiUrl('/quote/' + ticker + '?range=' + rng + '&interval=1d&fundamental=false'));
+        if (r.ok) { json = await r.json(); break; }
+        if (r.status !== 400) throw new Error('Erro ' + r.status + ' — verifique o token ou o ticker informado.');
+      }
+      if (!json) throw new Error('Não foi possível buscar o histórico. Verifique o token ou tente um período menor.');
+
       const q = json.results && json.results[0];
       if (!q || !q.historicalDataPrice || !q.historicalDataPrice.length)
-        throw new Error('Histórico não disponível para "' + ticker + '".');
+        throw new Error('Histórico não disponível para "' + ticker + '". O plano gratuito pode não cobrir esta data.');
 
       const hist = q.historicalDataPrice;
       const alvo = new Date(data + 'T12:00:00').getTime() / 1000;
