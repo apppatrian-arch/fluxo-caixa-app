@@ -666,8 +666,8 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v50</strong></div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">19/06/2026 às 11:30</div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v51</strong></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">19/06/2026 às 12:00</div>
           </div>
         </div>
       </div>
@@ -3393,6 +3393,12 @@
   // ── FINANCEIRO ──
   let paulFinEditId = null;
 
+  function editarLancFinById(id) {
+    const l = window._paulFinMap && window._paulFinMap[id];
+    if (!l) { alert('Lançamento não encontrado.'); return; }
+    editarLancFin(l.id, String(l.data).slice(0,10), l.tipo, l.descricao || '', Number(l.valor));
+  }
+
   function editarLancFin(id, data, tipo, desc, valor) {
     paulFinEditId = id;
     document.getElementById('pfin-data').value  = data;
@@ -3471,6 +3477,10 @@
         lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhum lançamento ainda.</div>';
         return;
       }
+      // Guarda mapa em memória para edição segura (evita problemas com aspas no onclick)
+      window._paulFinMap = {};
+      lancamentos.forEach(l => { window._paulFinMap[l.id] = l; });
+
       lista.innerHTML = lancamentos.map(l => {
         const val = Number(l.valor);
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
@@ -3480,7 +3490,7 @@
             '<div style="font-size:11px;color:var(--text-muted);">' + String(l.data).slice(0,10).split('-').reverse().join('/') + '</div>' +
           '</div>' +
           '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
-          '<button onclick="editarLancFin(' + l.id + ',\'' + String(l.data).slice(0,10) + '\',\'' + l.tipo + '\',' + JSON.stringify(l.descricao||'') + ',' + val + ')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Editar">✏️</button>' +
+          '<button onclick="editarLancFinById(' + l.id + ')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Editar">✏️</button>' +
           '<button onclick="excluirLancFin(' + l.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' +
         '</div>';
       }).join('');
