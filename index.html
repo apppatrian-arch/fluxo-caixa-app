@@ -666,8 +666,8 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v55</strong></div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">19/06/2026 às 14:15</div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v56</strong></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">19/06/2026 às 16:30</div>
           </div>
         </div>
       </div>
@@ -848,6 +848,7 @@
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button id="ptab-financeiro" onclick="setPTab('financeiro')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--primary);color:white;">💰 Financeiro</button>
         <button id="ptab-estoque" onclick="setPTab('estoque')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);">📦 Estoque</button>
+        <button id="ptab-lixeira" onclick="setPTab('lixeira')" style="padding:10px 14px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);" title="Excluídos">🗑</button>
       </div>
 
       <!-- SUB-PAINEL FINANCEIRO -->
@@ -979,6 +980,23 @@
             </select>
           </div>
           <div id="pest-lista"></div>
+        </div>
+      </div>
+
+      <!-- Painel Lixeira -->
+      <div id="ppainel-lixeira" style="display:none;">
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🗑 Registros Excluídos</div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <select id="plixeira-modulo" onchange="renderLixeira()" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);">
+              <option value="">💰📦 Todos</option>
+              <option value="financeiro">💰 Financeiro</option>
+              <option value="estoque">📦 Estoque</option>
+            </select>
+            <input type="text" id="plixeira-busca" placeholder="🔍 Pesquisar..." oninput="renderLixeira()"
+              style="flex:1;min-width:120px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);" />
+          </div>
+          <div id="plixeira-lista"></div>
         </div>
       </div>
 
@@ -3300,6 +3318,61 @@
     return '👤 ' + r.usuario + ' (' + r.acao + ' ' + r.quando + ')';
   }
 
+  // ── LIXEIRA: guarda entradas excluídas antes de chamada DELETE ──
+  function paulLixeiraGet() {
+    return JSON.parse(localStorage.getItem('fc_paul_lixeira') || '[]');
+  }
+  function paulLixeiraAdd(modulo, dados, deletadoPor) {
+    const arr = paulLixeiraGet();
+    const agora = new Date();
+    const deletadoEm = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    arr.unshift({ modulo, id_original: dados.id, dados, deletadoPor, deletadoEm });
+    localStorage.setItem('fc_paul_lixeira', JSON.stringify(arr));
+  }
+  function renderLixeira() {
+    const busca = (document.getElementById('plixeira-busca').value || '').toLowerCase();
+    const filtroMod = document.getElementById('plixeira-modulo').value;
+    const todos = paulLixeiraGet();
+    const filtrados = todos.filter(e => {
+      if (filtroMod && e.modulo !== filtroMod) return false;
+      if (!busca) return true;
+      const txt = JSON.stringify(e).toLowerCase();
+      return txt.includes(busca);
+    });
+    const el = document.getElementById('plixeira-lista');
+    if (!filtrados.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhum registro excluído encontrado.</div>';
+      return;
+    }
+    el.innerHTML = filtrados.map(e => {
+      const d = e.dados;
+      let detalhe = '';
+      if (e.modulo === 'financeiro') {
+        const dataStr = String(d.data || '').slice(0,10).split('-').reverse().join('/');
+        const cor = d.tipo === 'credito' ? 'var(--success)' : 'var(--danger)';
+        const sinal = d.tipo === 'credito' ? '+' : '-';
+        detalhe = '<div style="font-size:12px;font-weight:700;">' + (d.descricao||'') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + dataStr + ' · ' + (d.tipo||'') + '</div>' +
+          '<div style="font-size:13px;font-weight:800;color:' + cor + ';">' + sinal + ' R$ ' + Number(d.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2}) + '</div>';
+      } else {
+        const dataStr = String(d.data || '').slice(0,10).split('-').reverse().join('/');
+        const cod = String(d.produto_cod || '');
+        const nomeProd = paulProdutos[cod] || cod;
+        const cor = d.tipo === 'entrada' ? 'var(--success)' : 'var(--danger)';
+        detalhe = '<div style="font-size:12px;font-weight:700;">[' + cod + '] ' + nomeProd + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' + dataStr + (d.observacao?' · '+d.observacao:'') + '</div>' +
+          '<div style="font-size:13px;font-weight:800;color:' + cor + ';">' + (d.tipo==='entrada'?'+':'-') + Number(d.quantidade||0).toLocaleString('pt-BR') + ' cx</div>';
+      }
+      return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div style="font-size:18px;flex-shrink:0;">' + (e.modulo==='financeiro'?'💰':'📦') + '</div>' +
+          '<div style="flex:1;min-width:0;">' + detalhe + '</div>' +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted);margin-top:4px;margin-left:26px;">🗑 Excluído por <strong>' + e.deletadoPor + '</strong> em ' + e.deletadoEm + ' · ID original: #' + e.id_original + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
   function paulLoading(elId, msg) {
     const el = document.getElementById(elId);
     if (el) el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">⏳ ' + (msg || 'Carregando...') + '</div>';
@@ -3396,16 +3469,22 @@
     paulTabAtual = tab;
     document.getElementById('ppainel-financeiro').style.display = tab === 'financeiro' ? 'block' : 'none';
     document.getElementById('ppainel-estoque').style.display    = tab === 'estoque'    ? 'block' : 'none';
+    document.getElementById('ppainel-lixeira').style.display    = tab === 'lixeira'    ? 'block' : 'none';
     const btnFin = document.getElementById('ptab-financeiro');
     const btnEst = document.getElementById('ptab-estoque');
+    const btnLix = document.getElementById('ptab-lixeira');
     btnFin.style.background = tab === 'financeiro' ? 'var(--primary)' : 'var(--bg)';
     btnFin.style.color      = tab === 'financeiro' ? 'white'          : 'var(--text-muted)';
     btnFin.style.border     = tab === 'financeiro' ? 'none'           : '1.5px solid var(--border)';
     btnEst.style.background = tab === 'estoque'    ? 'var(--primary)' : 'var(--bg)';
     btnEst.style.color      = tab === 'estoque'    ? 'white'          : 'var(--text-muted)';
     btnEst.style.border     = tab === 'estoque'    ? 'none'           : '1.5px solid var(--border)';
+    btnLix.style.background = tab === 'lixeira'    ? '#ef4444'        : 'var(--bg)';
+    btnLix.style.color      = tab === 'lixeira'    ? 'white'          : 'var(--text-muted)';
+    btnLix.style.border     = tab === 'lixeira'    ? 'none'           : '1.5px solid var(--border)';
     if (tab === 'financeiro') renderFinanceiro();
     if (tab === 'estoque')    renderEstoque();
+    if (tab === 'lixeira')    renderLixeira();
   }
 
   function fmtMoeda(v) {
@@ -3475,8 +3554,10 @@
   }
 
   async function excluirLancFin(id) {
-    if (!confirm('Excluir este lançamento?')) return;
+    if (!confirm('Excluir este lançamento? O registro será salvo no histórico de excluídos.')) return;
     try {
+      const entry = window._paulFinMap && window._paulFinMap[id];
+      if (entry) paulLixeiraAdd('financeiro', entry, currentUser);
       await paulFetch('DELETE', '/paulistinha/financeiro/' + id);
       renderFinanceiro();
     } catch(e) { alert('❌ Erro ao excluir:\n' + e.message); }
@@ -3583,8 +3664,10 @@
   }
 
   async function excluirMovEstoque(id) {
-    if (!confirm('Excluir esta movimentação?')) return;
+    if (!confirm('Excluir esta movimentação? O registro será salvo no histórico de excluídos.')) return;
     try {
+      const entry = window._paulEstMap && window._paulEstMap[id];
+      if (entry) paulLixeiraAdd('estoque', entry, currentUser);
       await paulFetch('DELETE', '/paulistinha/estoque/' + id);
       if (paulEstEditId === id) cancelarEdicaoEstoque();
       renderEstoque();
@@ -3628,6 +3711,10 @@
       } else {
         elSaldos.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:10px;font-size:13px;">Sem saldos.</div>';
       }
+
+      // Mapa global para acesso no excluir (evitar injeção HTML via atributos)
+      window._paulEstMap = {};
+      (movimentos||[]).forEach(m => { window._paulEstMap[m.id] = m; });
 
       // Extrato filtrado
       const filtro = document.getElementById('pest-filtro-prod').value;
