@@ -666,8 +666,8 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v53</strong></div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">19/06/2026 às 13:00</div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v54</strong></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">19/06/2026 às 13:30</div>
           </div>
         </div>
       </div>
@@ -956,7 +956,10 @@
               <input type="text" id="pest-obs" placeholder="Opcional" maxlength="80" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
             </div>
           </div>
-          <button id="pest-btn-salvar" onclick="salvarMovEstoque()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">+ Registrar</button>
+          <div style="display:flex;gap:8px;">
+            <button id="pest-btn-salvar" onclick="salvarMovEstoque()" style="flex:1;padding:12px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">+ Registrar</button>
+            <button id="pest-btn-cancelar" onclick="cancelarEdicaoEstoque()" style="display:none;padding:12px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;color:var(--text);">✕ Cancelar</button>
+          </div>
         </div>
 
         <!-- Extrato de estoque -->
@@ -3517,6 +3520,7 @@
     const btn = document.getElementById('pest-btn-salvar');
     btn.textContent = '💾 Salvar Alteração';
     btn.style.background = '#f59e0b';
+    document.getElementById('pest-btn-cancelar').style.display = '';
     document.getElementById('ppainel-estoque').scrollTop = 0;
     document.getElementById('pest-data').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -3529,6 +3533,7 @@
     const btn = document.getElementById('pest-btn-salvar');
     btn.textContent = '+ Registrar';
     btn.style.background = 'var(--primary)';
+    document.getElementById('pest-btn-cancelar').style.display = 'none';
   }
 
   async function salvarMovEstoque() {
