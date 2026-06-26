@@ -848,6 +848,7 @@
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button id="ptab-financeiro" onclick="setPTab('financeiro')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--primary);color:white;">💰 Financeiro</button>
         <button id="ptab-estoque" onclick="setPTab('estoque')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);">📦 Estoque</button>
+        <button id="ptab-vendas" onclick="setPTab('vendas')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);">📋 Vendas</button>
         <button id="ptab-lixeira" onclick="setPTab('lixeira')" style="padding:10px 14px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border);" title="Excluídos">🗑</button>
       </div>
 
@@ -980,6 +981,50 @@
             </select>
           </div>
           <div id="pest-lista"></div>
+        </div>
+      </div>
+
+      <!-- Painel Vendas -->
+      <div id="ppainel-vendas" style="display:none;">
+        <!-- Filtro de período -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">📋 Vendas por Período</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:120px;">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">De</div>
+              <input type="date" id="pvend-data-ini" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
+            </div>
+            <div style="flex:1;min-width:120px;">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Até</div>
+              <input type="date" id="pvend-data-fim" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
+            </div>
+            <button onclick="buscarVendas()" style="padding:9px 16px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🔍 Buscar</button>
+          </div>
+        </div>
+        <!-- Cards de resumo -->
+        <div id="pvend-resumo" style="display:none;margin-bottom:14px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div style="background:var(--card);border-radius:12px;padding:12px 14px;">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Faturado</div>
+              <div id="pvend-total-fat" style="font-size:16px;font-weight:800;color:var(--text);margin-top:4px;">R$ 0</div>
+            </div>
+            <div style="background:var(--card);border-radius:12px;padding:12px 14px;">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Pago</div>
+              <div id="pvend-total-pag" style="font-size:16px;font-weight:800;color:var(--success);margin-top:4px;">R$ 0</div>
+            </div>
+            <div style="background:var(--card);border-radius:12px;padding:12px 14px;">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">A Receber</div>
+              <div id="pvend-total-pend" style="font-size:16px;font-weight:800;color:#f59e0b;margin-top:4px;">R$ 0</div>
+            </div>
+            <div style="background:var(--card);border-radius:12px;padding:12px 14px;">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Kg</div>
+              <div id="pvend-total-kg" style="font-size:16px;font-weight:800;color:var(--text);margin-top:4px;">0 kg</div>
+            </div>
+          </div>
+        </div>
+        <!-- Lista -->
+        <div style="background:var(--card);border-radius:14px;padding:16px;">
+          <div id="pvend-lista"><div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Selecione um período e clique em Buscar.</div></div>
         </div>
       </div>
 
