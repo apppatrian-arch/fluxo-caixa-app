@@ -677,8 +677,8 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v58</strong></div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">26/06/2026 às 11:30</div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v59</strong></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">26/06/2026 às 13:00</div>
           </div>
         </div>
       </div>
@@ -687,35 +687,35 @@
 
   <div class="content">
 
-    <!-- SALDO -->
-    <div class="saldo-card">
-      <div class="saldo-label">Saldo em Caixa</div>
-      <div class="saldo-valor" id="saldo-total">R$ 0,00</div>
-      <div class="saldo-detalhe">
-        <div class="saldo-item">
-          <div class="saldo-item-label">↑ Recebimentos</div>
-          <div class="saldo-item-valor" id="saldo-rec">R$ 0,00</div>
-        </div>
-        <div class="saldo-item">
-          <div class="saldo-item-label">↓ Pagamentos</div>
-          <div class="saldo-item-valor" id="saldo-pag">R$ 0,00</div>
-        </div>
-      </div>
-    </div>
-
     <!-- TABS -->
     <div class="tabs-wrapper">
       <button class="tabs-arrow" id="tabs-prev" onclick="scrollTabs(-1)" title="Anterior">‹</button>
       <div class="tabs" id="tabs-bar">
-        <button class="tab tab-destaque" id="tab-paulistinha" onclick="setTab('paulistinha')" style="white-space:nowrap;">🚬 Paulistinha</button>
-        <button class="tab active" id="tab-pessoal" onclick="setTab('pessoal')" style="white-space:nowrap;">💼 Financeiro</button>
+        <button class="tab tab-destaque active" id="tab-paulistinha" onclick="setTab('paulistinha')" style="white-space:nowrap;">🚬 Paulistinha</button>
+        <button class="tab" id="tab-pessoal" onclick="setTab('pessoal')" style="white-space:nowrap;">💼 Financeiro</button>
         <button class="tab" id="tab-acoes" onclick="setTab('acoes')" style="white-space:nowrap;">📈 Ações</button>
       </div>
       <button class="tabs-arrow" id="tabs-next" onclick="scrollTabs(1)" title="Próximo">›</button>
     </div>
 
     <!-- ── PAINEL PESSOAL (wrapper das sub-abas financeiras pessoais) ── -->
-    <div id="painel-pessoal">
+    <div id="painel-pessoal" style="display:none;">
+
+      <!-- Saldo em Caixa (visível apenas dentro do Financeiro pessoal) -->
+      <div class="saldo-card" style="margin-bottom:14px;">
+        <div class="saldo-label">Saldo em Caixa</div>
+        <div class="saldo-valor" id="saldo-total">R$ 0,00</div>
+        <div class="saldo-detalhe">
+          <div class="saldo-item">
+            <div class="saldo-item-label">↑ Recebimentos</div>
+            <div class="saldo-item-valor" id="saldo-rec">R$ 0,00</div>
+          </div>
+          <div class="saldo-item">
+            <div class="saldo-item-label">↓ Pagamentos</div>
+            <div class="saldo-item-valor" id="saldo-pag">R$ 0,00</div>
+          </div>
+        </div>
+      </div>
 
       <!-- Sub-abas internas do Financeiro Pessoal -->
       <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;">
@@ -1416,7 +1416,7 @@
     document.getElementById('menu-username').textContent = currentUser;
 
     await carregarLancamentos();
-    setTab('pessoal');
+    setTab('paulistinha');
 
     const hoje = new Date().toISOString().split('T')[0];
     document.getElementById('novo-data').value = hoje;
@@ -1621,6 +1621,9 @@
       const btn = document.getElementById('tab-' + t);
       if (btn) btn.classList.toggle('active', t === tab);
     });
+    const titulos = { paulistinha: 'Paulistinha', pessoal: 'Financeiro', acoes: 'Ações' };
+    const el = document.getElementById('topbar-title');
+    if (el) el.textContent = titulos[tab] || 'Dashboard';
     if (tab === 'paulistinha') initPaulistinha();
     if (tab === 'acoes')       initAcoes();
     if (tab === 'pessoal')     setFPTab(fpTabAtual);

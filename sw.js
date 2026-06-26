@@ -1,4 +1,4 @@
-const CACHE = 'fluxo-caixa-v58';
+const CACHE = 'fluxo-caixa-v59';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -12,7 +12,6 @@ self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(ASSETS))
   );
-  // Não chama skipWaiting aqui — a página controla quando trocar
 });
 
 self.addEventListener('activate', e => {
@@ -24,7 +23,6 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Recebe sinal da página para ativar imediatamente
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
