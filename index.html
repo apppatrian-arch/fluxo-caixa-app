@@ -677,7 +677,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v74</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v75</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -1008,9 +1008,15 @@
           </div>
         </div>
 
+        <!-- Card total do período -->
+        <div style="background:rgba(99,102,241,0.08);border:1.5px solid #6366f1;border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:11px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Total do Período</div>
+          <div id="pest-total" style="font-size:18px;font-weight:800;color:#6366f1;">0 cx</div>
+        </div>
+
         <!-- Extrato de estoque -->
         <div style="background:var(--card);border-radius:14px;padding:16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <div style="font-size:13px;font-weight:700;">Movimentações</div>
             <select id="pest-filtro-prod" onchange="renderEstoque()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);">
               <option value="">Todos os produtos</option>
@@ -1023,6 +1029,17 @@
               <option value="7050">7050 – AROEIRO TRAD.</option>
               <option value="11196">11196 – AROEIRO MENTA</option>
             </select>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;">
+            <div style="flex:1;">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">De</div>
+              <input type="date" id="pest-filtro-ini" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Até</div>
+              <input type="date" id="pest-filtro-fim" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
+            </div>
+            <button onclick="renderEstoque()" style="padding:9px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🔍 Filtrar</button>
           </div>
           <div id="pest-lista"></div>
         </div>
@@ -3669,10 +3686,12 @@
     const sHoje = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
     document.getElementById('pfin-data').value = sHoje;
     document.getElementById('pest-data').value = sHoje;
-    // Filtro padrão: mês corrente
+    // Filtros padrão: mês corrente
     const mes1 = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-01';
     document.getElementById('pfin-filtro-ini').value = mes1;
     document.getElementById('pfin-filtro-fim').value = sHoje;
+    document.getElementById('pest-filtro-ini').value = mes1;
+    document.getElementById('pest-filtro-fim').value = sHoje;
     popularSelectTiposFin();
     popularSelectTiposEst();
 
@@ -4088,13 +4107,27 @@
       window._paulEstMap = {};
       (movimentos||[]).forEach(m => { window._paulEstMap[m.id] = m; });
 
-      // Extrato filtrado
-      const filtro = document.getElementById('pest-filtro-prod').value;
-      const movs = filtro ? (movimentos||[]).filter(m => String(m.produto_cod) === filtro) : (movimentos||[]);
-      const lista = document.getElementById('pest-lista');
+      // Filtros: produto + data
+      const filtroProd = document.getElementById('pest-filtro-prod').value;
+      const filtroIni  = document.getElementById('pest-filtro-ini').value;
+      const filtroFim  = document.getElementById('pest-filtro-fim').value;
+      const movs = (movimentos||[]).filter(m => {
+        const d = String(m.data).slice(0,10);
+        return (!filtroProd || String(m.produto_cod) === filtroProd)
+            && (!filtroIni  || d >= filtroIni)
+            && (!filtroFim  || d <= filtroFim);
+      });
 
+      // Total do período (entradas − saídas em cx)
+      let totalCx = 0;
+      movs.forEach(m => { totalCx += m.tipo === 'entrada' ? Number(m.quantidade) : -Number(m.quantidade); });
+      const elTotal = document.getElementById('pest-total');
+      elTotal.textContent = (totalCx >= 0 ? '+' : '') + Number(totalCx).toLocaleString('pt-BR') + ' cx';
+      elTotal.style.color = totalCx >= 0 ? 'var(--success)' : 'var(--danger)';
+
+      const lista = document.getElementById('pest-lista');
       if (!movs.length) {
-        lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma movimentação.</div>';
+        lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma movimentação no período.</div>';
         return;
       }
       lista.innerHTML = movs.map(m => {
