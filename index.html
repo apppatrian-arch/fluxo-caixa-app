@@ -677,7 +677,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v73</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v74</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -875,20 +875,10 @@
 
       <!-- SUB-PAINEL FINANCEIRO -->
       <div id="ppainel-financeiro">
-        <!-- Saldo -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
-          <div style="background:rgba(99,102,241,0.08);border:1.5px solid #6366f1;border-radius:12px;padding:12px 10px;">
-            <div style="font-size:9px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Saldo do Período</div>
-            <div id="pfin-saldo" style="font-size:14px;font-weight:800;margin-top:4px;word-break:break-all;line-height:1.2;">R$ 0,00</div>
-          </div>
-          <div style="background:rgba(34,197,94,0.08);border:1.5px solid #22c55e;border-radius:12px;padding:12px 10px;">
-            <div style="font-size:9px;color:var(--success);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">↑ Crédito</div>
-            <div id="pfin-total-cred" style="font-size:14px;font-weight:800;color:var(--success);margin-top:4px;word-break:break-all;line-height:1.2;">R$ 0,00</div>
-          </div>
-          <div style="background:rgba(239,68,68,0.08);border:1.5px solid #ef4444;border-radius:12px;padding:12px 10px;">
-            <div style="font-size:9px;color:var(--danger);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">↓ Débito</div>
-            <div id="pfin-total-deb" style="font-size:14px;font-weight:800;color:var(--danger);margin-top:4px;word-break:break-all;line-height:1.2;">R$ 0,00</div>
-          </div>
+        <!-- Total do período -->
+        <div style="background:rgba(99,102,241,0.08);border:1.5px solid #6366f1;border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:11px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Total do Período</div>
+          <div id="pfin-saldo" style="font-size:18px;font-weight:800;word-break:break-all;line-height:1.2;">R$ 0,00</div>
         </div>
 
         <!-- Gerenciador de Motivos Financeiro -->
@@ -3977,19 +3967,15 @@
         return (!ini || d >= ini) && (!fim || d <= fim);
       });
 
-      // Totais do período filtrado
-      let totCred = 0, totDeb = 0;
+      // Total do período filtrado
+      let total = 0;
       lancamentos.forEach(l => {
-        if (l.tipo === 'cred') totCred += Number(l.valor);
-        else                   totDeb  += Number(l.valor);
+        total += l.tipo === 'cred' ? Number(l.valor) : -Number(l.valor);
       });
-      const saldo = totCred - totDeb;
 
       const elSaldo = document.getElementById('pfin-saldo');
-      elSaldo.textContent = fmtMoeda(saldo);
-      elSaldo.style.color = saldo >= 0 ? 'var(--success)' : 'var(--danger)';
-      document.getElementById('pfin-total-cred').textContent = fmtMoeda(totCred);
-      document.getElementById('pfin-total-deb').textContent  = fmtMoeda(totDeb);
+      elSaldo.textContent = fmtMoeda(total);
+      elSaldo.style.color = total >= 0 ? 'var(--success)' : 'var(--danger)';
 
       const lista = document.getElementById('pfin-lista');
       if (!lancamentos.length) {
