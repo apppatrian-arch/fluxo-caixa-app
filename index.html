@@ -677,7 +677,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v77</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v78</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -865,6 +865,32 @@
     <!-- ── PAINEL PAULISTINHA ── -->
     <div id="painel-paulistinha" style="display:none;">
 
+      <!-- Header Paulistinha com botão de usuários -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:15px;font-weight:700;color:var(--text);">Paulistinha</div>
+        <button id="btn-paul-usuarios" onclick="togglePainelUsuarios()" style="display:none;font-size:12px;padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-muted);cursor:pointer;font-weight:600;">⚙️ Usuários</button>
+      </div>
+
+      <!-- Painel gerenciador de usuários (só admin) -->
+      <div id="ppainel-usuarios" style="display:none;background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">👥 Gerenciar Usuários</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+          <input type="text" id="paul-usr-nome" placeholder="Nome" maxlength="40"
+            style="padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
+          <input type="text" id="paul-usr-email" placeholder="E-mail" maxlength="80"
+            style="padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+            <select id="paul-usr-perfil" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);">
+              <option value="editor">Editor — inclui e edita</option>
+              <option value="leitura">Leitura — somente visualiza</option>
+              <option value="admin">Admin — gerencia usuários</option>
+            </select>
+            <button onclick="paulAdicionarUsuario()" style="padding:9px 16px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">✓ Adicionar</button>
+          </div>
+        </div>
+        <div id="paul-lista-usuarios" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
       <!-- Sub-abas -->
       <div style="display:flex;gap:8px;margin-bottom:16px;">
         <button id="ptab-financeiro" onclick="setPTab('financeiro')" style="flex:1;padding:10px 0;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:var(--primary);color:white;">💰 Financeiro</button>
@@ -882,7 +908,7 @@
         </div>
 
         <!-- Gerenciador de Motivos Financeiro -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div id="pfin-bloco-motivos" style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
             <div style="font-size:13px;font-weight:700;">⚙️ Motivos de Lançamento</div>
             <button onclick="toggleGerenciarTiposFin()" id="btn-gerenciar-tipos-fin" style="font-size:11px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-muted);cursor:pointer;font-weight:600;">+ Gerenciar</button>
@@ -898,7 +924,7 @@
         </div>
 
         <!-- Form novo lançamento financeiro -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div id="pfin-bloco-form" style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Novo Lançamento</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
             <div>
@@ -948,7 +974,7 @@
       <div id="ppainel-estoque" style="display:none;">
 
         <!-- Gerenciador de Motivos Estoque -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div id="pest-bloco-motivos" style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
             <div style="font-size:13px;font-weight:700;">⚙️ Motivos de Movimentação</div>
             <button onclick="toggleGerenciarTiposEst()" id="btn-gerenciar-tipos-est" style="font-size:11px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-muted);cursor:pointer;font-weight:600;">+ Gerenciar</button>
@@ -964,7 +990,7 @@
         </div>
 
         <!-- Form nova movimentação de estoque -->
-        <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div id="pest-bloco-form" style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Nova Movimentação</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
             <div>
@@ -3697,6 +3723,8 @@
     document.getElementById('pest-filtro-fim').value = sHoje;
     popularSelectTiposFin();
     popularSelectTiposEst();
+    paulInicializarUsuarios();
+    paulAplicarAcessoUI();
 
     if (!paulToken) {
       const ok = await paulAuth();
@@ -3765,6 +3793,111 @@
 
   function fmtMoeda(v) {
     return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  // ── CONTROLE DE USUÁRIOS PAULISTINHA ──
+  const PAUL_USR_KEY = 'fc_paul_usuarios';
+
+  function paulUsuariosGet() {
+    return JSON.parse(localStorage.getItem(PAUL_USR_KEY) || '[]');
+  }
+  function paulUsuariosSet(lista) {
+    localStorage.setItem(PAUL_USR_KEY, JSON.stringify(lista));
+  }
+
+  function paulGetPerfil() {
+    const lista = paulUsuariosGet();
+    if (!lista.length) return 'admin'; // sem configuração = acesso total
+    const me = lista.find(u => u.email.toLowerCase() === (currentUser||'').toLowerCase());
+    return me ? me.perfil : 'sem_acesso';
+  }
+  function paulPodeEditar() {
+    const p = paulGetPerfil();
+    return p === 'admin' || p === 'editor';
+  }
+  function paulIsAdmin() {
+    return paulGetPerfil() === 'admin';
+  }
+
+  function paulAplicarAcessoUI() {
+    const editor  = paulPodeEditar();
+    const admin   = paulIsAdmin();
+    // Botão de usuários: só admin vê
+    const btnUsr = document.getElementById('btn-paul-usuarios');
+    if (btnUsr) btnUsr.style.display = admin ? '' : 'none';
+    // Blocos de formulário e motivos: só editores veem
+    ['pfin-bloco-form','pfin-bloco-motivos','pest-bloco-form','pest-bloco-motivos'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = editor ? '' : 'none';
+    });
+  }
+
+  function togglePainelUsuarios() {
+    const p = document.getElementById('ppainel-usuarios');
+    const aberto = p.style.display !== 'none';
+    p.style.display = aberto ? 'none' : 'block';
+    if (!aberto) renderListaUsuarios();
+    document.getElementById('btn-paul-usuarios').textContent = aberto ? '⚙️ Usuários' : '✕ Fechar';
+  }
+
+  function renderListaUsuarios() {
+    const lista = paulUsuariosGet();
+    const el    = document.getElementById('paul-lista-usuarios');
+    if (!lista.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:8px;">Nenhum usuário cadastrado.</div>';
+      return;
+    }
+    const corPerfil = { admin: '#6366f1', editor: '#22c55e', leitura: '#f59e0b' };
+    const bgPerfil  = { admin: 'rgba(99,102,241,0.1)', editor: 'rgba(34,197,94,0.1)', leitura: 'rgba(245,158,11,0.1)' };
+    el.innerHTML = lista.map((u, i) => {
+      const cor = corPerfil[u.perfil] || 'var(--text-muted)';
+      const bg  = bgPerfil[u.perfil]  || 'var(--surface)';
+      const euAdmin = u.email.toLowerCase() === (currentUser||'').toLowerCase() && u.perfil === 'admin';
+      return '<div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;font-weight:700;color:var(--text);">' + u.nome + '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + u.email + '</div>' +
+        '</div>' +
+        '<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:' + bg + ';color:' + cor + ';white-space:nowrap;">' +
+          (u.perfil === 'admin' ? 'Admin' : u.perfil === 'editor' ? 'Editor' : 'Leitura') +
+        '</span>' +
+        (euAdmin ? '' : '<button onclick="paulRemoverUsuario(' + i + ')" style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:2px 4px;" title="Remover">🗑</button>') +
+      '</div>';
+    }).join('');
+  }
+
+  function paulAdicionarUsuario() {
+    const nome   = document.getElementById('paul-usr-nome').value.trim();
+    const email  = document.getElementById('paul-usr-email').value.trim().toLowerCase();
+    const perfil = document.getElementById('paul-usr-perfil').value;
+    if (!nome)  { alert('Informe o nome.'); return; }
+    if (!email || !email.includes('@')) { alert('Informe um e-mail válido.'); return; }
+    const lista = paulUsuariosGet();
+    if (lista.some(u => u.email.toLowerCase() === email)) { alert('Este e-mail já está cadastrado.'); return; }
+    lista.push({ nome, email, perfil });
+    paulUsuariosSet(lista);
+    document.getElementById('paul-usr-nome').value  = '';
+    document.getElementById('paul-usr-email').value = '';
+    renderListaUsuarios();
+  }
+
+  function paulRemoverUsuario(idx) {
+    if (!confirm('Remover este usuário?')) return;
+    const lista = paulUsuariosGet();
+    lista.splice(idx, 1);
+    paulUsuariosSet(lista);
+    renderListaUsuarios();
+    paulAplicarAcessoUI();
+  }
+
+  function paulInicializarUsuarios() {
+    const lista = paulUsuariosGet();
+    if (!lista.length && currentUser) {
+      // Primeiro acesso: registra o usuário atual como admin
+      const nome = (currentUser.split('@')[0] || 'Admin').replace(/[._]/g, ' ');
+      lista.push({ nome: nome.charAt(0).toUpperCase() + nome.slice(1), email: currentUser.toLowerCase(), perfil: 'admin' });
+      paulUsuariosSet(lista);
+    }
   }
 
   // ── TIPOS DE LANÇAMENTO FINANCEIRO ──
@@ -3933,6 +4066,7 @@
   }
 
   async function salvarLancFin() {
+    if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
     const data      = document.getElementById('pfin-data').value;
     const tipoLabel = document.getElementById('pfin-tipo').value.trim();
     const descExtra = document.getElementById('pfin-desc').value.trim();
@@ -3963,6 +4097,7 @@
   }
 
   async function excluirLancFin(id) {
+    if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
     if (!confirm('Excluir este lançamento? O registro será salvo no histórico de excluídos.')) return;
     try {
       const entry = window._paulFinMap && window._paulFinMap[id];
@@ -4005,6 +4140,7 @@
         return;
       }
 
+      const podeEditarFin = paulPodeEditar();
       lista.innerHTML = lancamentos.map(l => {
         const val = Number(l.valor);
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
@@ -4015,8 +4151,8 @@
             (paulHistoricoLabel('fin_' + l.id) ? '<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">' + paulHistoricoLabel('fin_' + l.id) + '</div>' : '') +
           '</div>' +
           '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
-          '<button onclick="editarLancFinById(' + l.id + ')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Editar">✏️</button>' +
-          '<button onclick="excluirLancFin(' + l.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' +
+          (podeEditarFin ? '<button onclick="editarLancFinById(' + l.id + ')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Editar">✏️</button>' : '') +
+          (podeEditarFin ? '<button onclick="excluirLancFin(' + l.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' : '') +
         '</div>';
       }).join('');
     } catch(e) {
@@ -4061,6 +4197,7 @@
   }
 
   async function salvarMovEstoque() {
+    if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
     const data      = document.getElementById('pest-data').value;
     const tipoLabel = document.getElementById('pest-tipo').value.trim();
     const cod       = document.getElementById('pest-produto').value;
@@ -4091,6 +4228,7 @@
   }
 
   async function excluirMovEstoque(id) {
+    if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
     if (!confirm('Excluir esta movimentação? O registro será salvo no histórico de excluídos.')) return;
     try {
       const entry = window._paulEstMap && window._paulEstMap[id];
@@ -4133,6 +4271,7 @@
         lista.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">Nenhuma movimentação no período.</div>';
         return;
       }
+      const podeEditarEst = paulPodeEditar();
       lista.innerHTML = movs.map(m => {
         const cod      = String(m.produto_cod);
         const nomeProd = paulProdutos[cod] || cod;
@@ -4148,8 +4287,8 @@
             (paulHistoricoLabel('est_' + m.id) ? '<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">' + paulHistoricoLabel('est_' + m.id) + '</div>' : '') +
           '</div>' +
           '<div style="font-size:13px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + fmtQtd + ' cx</div>' +
-          '<button onclick="editarMovEstoque(' + m.id + ',\'' + dataEsc + '\',\'' + m.tipo + '\',' + m.produto_cod + ',' + m.quantidade + ',\'' + obsEsc + '\')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Alterar">✏️</button>' +
-          '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' +
+          (podeEditarEst ? '<button onclick="editarMovEstoque(' + m.id + ',\'' + dataEsc + '\',\'' + m.tipo + '\',' + m.produto_cod + ',' + m.quantidade + ',\'' + obsEsc + '\')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Alterar">✏️</button>' : '') +
+          (podeEditarEst ? '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' : '') +
         '</div>';
       }).join('');
     } catch(e) {
