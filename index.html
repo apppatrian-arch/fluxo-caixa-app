@@ -677,7 +677,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v76</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v77</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -929,17 +929,17 @@
         <!-- Extrato financeiro -->
         <div style="background:var(--card);border-radius:14px;padding:16px;">
           <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Extrato</div>
-          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;">
-            <div style="flex:1;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
               <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">De</div>
               <input type="date" id="pfin-filtro-ini" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
             </div>
-            <div style="flex:1;">
+            <div>
               <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Até</div>
               <input type="date" id="pfin-filtro-fim" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
             </div>
-            <button onclick="renderFinanceiro()" style="padding:9px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🔍 Filtrar</button>
           </div>
+          <button onclick="renderFinanceiro()" style="width:100%;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px;">🔍 Filtrar</button>
           <div id="pfin-lista"></div>
         </div>
       </div>
@@ -1016,9 +1016,11 @@
 
         <!-- Extrato de estoque -->
         <div style="background:var(--card);border-radius:14px;padding:16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div style="font-size:13px;font-weight:700;">Movimentações</div>
-            <select id="pest-filtro-prod" onchange="renderEstoque()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);color:var(--text);">
+          <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Movimentações</div>
+          <!-- Filtro produto -->
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Produto</div>
+            <select id="pest-filtro-prod" onchange="renderEstoque()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);">
               <option value="">Todos os produtos</option>
               <option value="54">54 – TRAD.</option>
               <option value="60">60 – MENTA</option>
@@ -1030,17 +1032,18 @@
               <option value="11196">11196 – AROEIRO MENTA</option>
             </select>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;">
-            <div style="flex:1;">
+          <!-- Filtro datas + botão -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
               <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">De</div>
               <input type="date" id="pest-filtro-ini" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
             </div>
-            <div style="flex:1;">
+            <div>
               <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Até</div>
               <input type="date" id="pest-filtro-fim" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
             </div>
-            <button onclick="renderEstoque()" style="padding:9px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🔍 Filtrar</button>
           </div>
+          <button onclick="renderEstoque()" style="width:100%;padding:10px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px;">🔍 Filtrar</button>
           <div id="pest-lista"></div>
         </div>
       </div>
