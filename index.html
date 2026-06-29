@@ -677,7 +677,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v71</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v72</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -891,15 +891,15 @@
           </div>
         </div>
 
-        <!-- Gerenciador de Tipos de Lançamento Financeiro -->
+        <!-- Gerenciador de Motivos Financeiro -->
         <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:13px;font-weight:700;">⚙️ Tipos de Lançamento</div>
+            <div style="font-size:13px;font-weight:700;">⚙️ Motivos de Lançamento</div>
             <button onclick="toggleGerenciarTiposFin()" id="btn-gerenciar-tipos-fin" style="font-size:11px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-muted);cursor:pointer;font-weight:600;">+ Gerenciar</button>
           </div>
           <div id="painel-gerenciar-tipos-fin" style="display:none;margin-top:10px;">
             <div style="display:flex;gap:8px;margin-bottom:10px;">
-              <input type="text" id="novo-tipo-fin-label" placeholder="Nome do tipo (ex: Imposto, Salário...)" maxlength="40"
+              <input type="text" id="novo-tipo-fin-label" placeholder="Nome do motivo (ex: Imposto, Salário...)" maxlength="40"
                 style="flex:1;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
               <button onclick="adicionarTipoFin()" style="padding:9px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">✓</button>
             </div>
@@ -916,7 +916,7 @@
               <input type="date" id="pfin-data" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
             </div>
             <div>
-              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Tipo</label>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Motivo</label>
               <select id="pfin-tipo" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);">
                 <option value="">Selecione...</option>
               </select>
@@ -946,15 +946,15 @@
       <!-- SUB-PAINEL ESTOQUE -->
       <div id="ppainel-estoque" style="display:none;">
 
-        <!-- Gerenciador de Tipos de Movimentação Estoque -->
+        <!-- Gerenciador de Motivos Estoque -->
         <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div style="font-size:13px;font-weight:700;">⚙️ Tipos de Movimentação</div>
+            <div style="font-size:13px;font-weight:700;">⚙️ Motivos de Movimentação</div>
             <button onclick="toggleGerenciarTiposEst()" id="btn-gerenciar-tipos-est" style="font-size:11px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-muted);cursor:pointer;font-weight:600;">+ Gerenciar</button>
           </div>
           <div id="painel-gerenciar-tipos-est" style="display:none;margin-top:10px;">
             <div style="display:flex;gap:8px;margin-bottom:10px;">
-              <input type="text" id="novo-tipo-est-label" placeholder="Nome do tipo (ex: Bonificação, Avaria...)" maxlength="40"
+              <input type="text" id="novo-tipo-est-label" placeholder="Nome do motivo (ex: Bonificação, Avaria...)" maxlength="40"
                 style="flex:1;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);" />
               <button onclick="adicionarTipoEst()" style="padding:9px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">✓</button>
             </div>
@@ -971,7 +971,7 @@
               <input type="date" id="pest-data" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);" />
             </div>
             <div>
-              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Tipo</label>
+              <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Motivo</label>
               <select id="pest-tipo" style="width:100%;margin-top:4px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--bg);color:var(--text);">
                 <option value="">Selecione...</option>
               </select>
@@ -3784,9 +3784,9 @@
   }
   function adicionarTipoFin() {
     const label = document.getElementById('novo-tipo-fin-label').value.trim();
-    if (!label) { alert('Informe o nome do tipo.'); return; }
+    if (!label) { alert('Informe o nome do motivo.'); return; }
     const tipos = tiposFinGet();
-    if (tipos.some(t => t.toLowerCase() === label.toLowerCase())) { alert('Já existe um tipo com este nome.'); return; }
+    if (tipos.some(t => t.toLowerCase() === label.toLowerCase())) { alert('Já existe um motivo com este nome.'); return; }
     tipos.push(label);
     tiposFinSet(tipos);
     document.getElementById('novo-tipo-fin-label').value = '';
@@ -3846,9 +3846,9 @@
   }
   function adicionarTipoEst() {
     const label = document.getElementById('novo-tipo-est-label').value.trim();
-    if (!label) { alert('Informe o nome do tipo.'); return; }
+    if (!label) { alert('Informe o nome do motivo.'); return; }
     const tipos = tiposEstGet();
-    if (tipos.some(t => t.toLowerCase() === label.toLowerCase())) { alert('Já existe um tipo com este nome.'); return; }
+    if (tipos.some(t => t.toLowerCase() === label.toLowerCase())) { alert('Já existe um motivo com este nome.'); return; }
     tipos.push(label);
     tiposEstSet(tipos);
     document.getElementById('novo-tipo-est-label').value = '';
@@ -3911,7 +3911,7 @@
     const descExtra = document.getElementById('pfin-desc').value.trim();
     const valor     = parseFloat(document.getElementById('pfin-valor').value);
     if (!data)                 { alert('Informe a data.'); return; }
-    if (!tipoLabel)            { alert('Selecione o tipo de lançamento.'); return; }
+    if (!tipoLabel)            { alert('Selecione o motivo do lançamento.'); return; }
     if (!valor || valor === 0) { alert('Informe um valor (positivo = Crédito, negativo = Débito).'); return; }
     const tipo     = valor > 0 ? 'cred' : 'deb';
     const valorAbs = Math.abs(valor);
@@ -4034,7 +4034,7 @@
     const qtd       = parseInt(document.getElementById('pest-qtd').value);
     const obsExtra  = document.getElementById('pest-obs').value.trim();
     if (!data)                 { alert('Informe a data.'); return; }
-    if (!tipoLabel)            { alert('Selecione o tipo de movimentação.'); return; }
+    if (!tipoLabel)            { alert('Selecione o motivo da movimentação.'); return; }
     if (!cod)                  { alert('Selecione o produto.'); return; }
     if (!qtd || qtd === 0)     { alert('Informe a quantidade (positivo = Entrada, negativo = Saída).'); return; }
 
