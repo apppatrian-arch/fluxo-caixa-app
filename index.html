@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v92</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v93</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -2236,7 +2236,7 @@
     if (!meses.length) { _paulResumoMensal('pvend-resumo-mensal', [], {}, fmtMoeda, '', '', '', ''); return; }
     const fmtR = v => 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2});
     pvend_chart = _paulBuildChart('pvend-chart-evo', meses,
-      { label:'Vendas',     data: meses.map(m=>grupos[m].v1), color:'#6366f1', bgBar:'rgba(99,102,241,0.6)', gradTop:'rgba(99,102,241,0.35)' },
+      { label:'Encomenda',  data: meses.map(m=>grupos[m].v1), color:'#6366f1', bgBar:'rgba(99,102,241,0.6)', gradTop:'rgba(99,102,241,0.35)' },
       { label:'Devoluções', data: meses.map(m=>grupos[m].v2), color:'#f59e0b', bgBar:'rgba(245,158,11,0.6)', gradTop:'rgba(245,158,11,0.30)' },
       pvend_vista, fmtR);
     _paulResumoMensal('pvend-resumo-mensal', meses, grupos, fmtR, '', '', '#6366f1', '#f59e0b');
