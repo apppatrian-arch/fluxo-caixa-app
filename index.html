@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v85</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v86</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -3968,7 +3968,22 @@
           '</div>' +
         '</div>';
       }).join('');
-      document.getElementById('pvend-por-tipo').innerHTML = tiposHtml;
+      // Card (=) Receita Operacional = Vendas - Devoluções
+      const recVal = Object.entries(porTipo).filter(([k]) =>  k.toLowerCase().startsWith('venda')).reduce((s,[,t]) => s + t.val, 0)
+                   - Object.entries(porTipo).filter(([k]) =>  k.toLowerCase().startsWith('devolucao')).reduce((s,[,t]) => s + t.val, 0);
+      const recKg  = Object.entries(porTipo).filter(([k]) =>  k.toLowerCase().startsWith('venda')).reduce((s,[,t]) => s + t.kg, 0)
+                   - Object.entries(porTipo).filter(([k]) =>  k.toLowerCase().startsWith('devolucao')).reduce((s,[,t]) => s + t.kg, 0);
+      const recHtml =
+        '<div style="background:rgba(99,102,241,0.1);border:2px solid #6366f1;border-radius:12px;padding:12px 14px;margin-top:4px;">' +
+          '<div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;">(=) RECEITA OPERACIONAL</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+            '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.4px;">Valor</div>' +
+              '<div style="font-size:15px;font-weight:800;color:#6366f1;margin-top:3px;">' + fmtR(recVal) + '</div></div>' +
+            '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.4px;">KG</div>' +
+              '<div style="font-size:15px;font-weight:800;color:#6366f1;margin-top:3px;">' + fmtKg(recKg) + '</div></div>' +
+          '</div>' +
+        '</div>';
+      document.getElementById('pvend-por-tipo').innerHTML = tiposHtml + recHtml;
       document.getElementById('pvend-resumo').style.display = 'block';
       window._pvendDados = dados;
       renderPvendChart(dados);
