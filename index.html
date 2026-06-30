@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v90</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v91</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -1167,7 +1167,7 @@
             <div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;">📊 Resumo Geral</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <div>
-                <div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Faturado</div>
+                <div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Encomenda</div>
                 <div id="pvend-total-fat" style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;">R$ 0</div>
               </div>
               <div>
@@ -4049,9 +4049,10 @@
         const pctDev = isDev && kgVendas > 0
           ? (t.kg / kgVendas * 100).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + '%'
           : null;
+        const tipoDisplay = _isPosType(tipo) ? tipo.replace(/^Venda\b/i, 'Encomenda') : tipo;
         return '<div style="background:' + estilo.bg + ';border:1.5px solid ' + estilo.borda + ';border-radius:12px;padding:12px 14px;margin-bottom:8px;">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
-            '<div style="font-size:12px;font-weight:700;color:' + estilo.cor + ';">' + estilo.icone + ' ' + tipo + '</div>' +
+            '<div style="font-size:12px;font-weight:700;color:' + estilo.cor + ';">' + estilo.icone + ' ' + tipoDisplay + '</div>' +
             '<div style="font-size:11px;color:var(--text-muted);">' + t.qtd + ' registro' + (t.qtd>1?'s':'') + '</div>' +
           '</div>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr 1fr' + (pctDev ? ' 1fr' : '') + ';gap:6px;">' +
@@ -4069,7 +4070,7 @@
                    - Object.entries(porTipo).filter(([k]) => _isDevType(k)).reduce((s,[,t]) => s + t.kg, 0);
       const recHtml =
         '<div style="background:rgba(99,102,241,0.1);border:2px solid #6366f1;border-radius:12px;padding:12px 14px;margin-top:4px;">' +
-          '<div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;">(=) RECEITA OPERACIONAL</div>' +
+          '<div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;">(=) ENCOMENDA OPERACIONAL</div>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
             '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.4px;">Valor</div>' +
               '<div style="font-size:15px;font-weight:800;color:#6366f1;margin-top:3px;">' + fmtR(recVal) + '</div></div>' +
