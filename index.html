@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v95</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v96</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -2267,13 +2267,15 @@
     if (!dados || !dados.length) { alert('Nenhum dado carregado. Aplique o filtro primeiro.'); return; }
     const ini = document.getElementById('pfin-filtro-ini').value || '';
     const fim = document.getElementById('pfin-filtro-fim').value || '';
-    const linhas = [['Data', 'Motivo', 'Detalhe', 'Valor (R$)', 'Tipo']];
+    const linhas = [['Data', 'Motivo', 'Detalhe', 'Nº Pedido', 'Valor (R$)', 'Tipo']];
     dados.forEach(l => {
-      const partes = (l.descricao || '').split(' - ');
+      const { descBase, nropedido } = _finParsarDesc(l.descricao);
+      const partes = descBase.split(' - ');
       linhas.push([
         String(l.data).slice(0,10),
         partes[0] || '',
         partes.slice(1).join(' - ') || '',
+        nropedido || '',
         l.tipo === 'cred' ? Number(l.valor) : -Number(l.valor),
         l.tipo === 'cred' ? 'Entrada' : 'Saída'
       ]);
@@ -4604,10 +4606,23 @@
   // ── FINANCEIRO ──
   let paulFinEditId = null;
 
+  function _finParsarDesc(descricao) {
+    const raw = descricao || '';
+    const nrIdx = raw.indexOf('|NR|');
+    return {
+      descBase:   nrIdx > -1 ? raw.slice(0, nrIdx) : raw,
+      nropedido:  nrIdx > -1 ? raw.slice(nrIdx + 4) : ''
+    };
+  }
+  function _finMontarDesc(descBase, nropedido) {
+    return descBase + (nropedido ? '|NR|' + nropedido : '');
+  }
+
   function editarLancFinById(id) {
     const l = window._paulFinMap && window._paulFinMap[id];
     if (!l) { alert('Lançamento não encontrado.'); return; }
-    editarLancFin(l.id, String(l.data).slice(0,10), l.tipo, l.descricao || '', Number(l.valor));
+    const { descBase } = _finParsarDesc(l.descricao);
+    editarLancFin(l.id, String(l.data).slice(0,10), l.tipo, descBase, Number(l.valor));
   }
 
   function editarLancFin(id, data, tipo, desc, valor) {
@@ -4658,9 +4673,10 @@
     try {
       if (paulFinEditId) {
         const lExist = window._paulFinMap && window._paulFinMap[paulFinEditId];
-        const nropedidoExist = lExist ? (lExist.nropedido || '') : '';
+        const { nropedido: nropedidoExist } = _finParsarDesc(lExist ? lExist.descricao : '');
+        const descricaoFinal = _finMontarDesc(descricao, nropedidoExist);
         await paulFetch('DELETE', '/paulistinha/financeiro/' + paulFinEditId);
-        const res = await paulFetch('POST', '/paulistinha/financeiro', { data, tipo, descricao, valor: valorAbs, nropedido: nropedidoExist });
+        const res = await paulFetch('POST', '/paulistinha/financeiro', { data, tipo, descricao: descricaoFinal, valor: valorAbs });
         const novoId = (res && res.id) ? res.id : null;
         if (novoId) paulHistoricoSet('fin_' + novoId, currentUser, 'editado');
         cancelarEditLancFin();
@@ -4689,13 +4705,14 @@
     const l = window._paulFinMap && window._paulFinMap[id];
     if (!l) { alert('Lançamento não encontrado.'); return; }
     try {
+      const { descBase } = _finParsarDesc(l.descricao);
+      const descricaoFinal = _finMontarDesc(descBase, nropedido);
       await paulFetch('DELETE', '/paulistinha/financeiro/' + id);
       const res = await paulFetch('POST', '/paulistinha/financeiro', {
         data: String(l.data).slice(0,10),
         tipo: l.tipo,
-        descricao: l.descricao || '',
-        valor: Number(l.valor),
-        nropedido: nropedido
+        descricao: descricaoFinal,
+        valor: Number(l.valor)
       });
       if (res && res.id) paulHistoricoSet('fin_' + res.id, currentUser, 'pedido atualizado');
       renderFinanceiro();
@@ -4752,10 +4769,10 @@
       const podeEditarFin = paulPodeEditar();
       lista.innerHTML = lancamentos.map(l => {
         const val    = Number(l.valor);
-        const partes = (l.descricao||'').split(' - ');
+        const { descBase, nropedido: nroped } = _finParsarDesc(l.descricao);
+        const partes = descBase.split(' - ');
         const motivo = partes[0];
         const detalhe = partes.slice(1).join(' - ');
-        const nroped = (l.nropedido || '').toString().trim();
         return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
           '<div style="display:flex;align-items:center;gap:10px;">' +
             '<div style="width:36px;height:36px;border-radius:50%;background:' + (l.tipo==='cred'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (l.tipo==='cred'?'↑':'↓') + '</div>' +
