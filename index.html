@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v97</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v98</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -2289,16 +2289,18 @@
     if (!dados || !dados.length) { alert('Nenhum dado carregado. Aplique o filtro primeiro.'); return; }
     const ini = document.getElementById('pest-filtro-ini').value || '';
     const fim = document.getElementById('pest-filtro-fim').value || '';
-    const linhas = [['Data', 'Cód. Produto', 'Produto', 'Motivo', 'Detalhe', 'Quantidade (cx)', 'Tipo']];
+    const linhas = [['Data', 'Cód. Produto', 'Produto', 'Motivo', 'Detalhe', 'Nº Pedido', 'Quantidade (cx)', 'Tipo']];
     dados.forEach(m => {
       const cod = String(m.produto_cod);
-      const partes = (m.observacao || '').split(' - ');
+      const { obsBase, nropedido } = _estParsarObs(m.observacao);
+      const partes = obsBase.split(' - ');
       linhas.push([
         String(m.data).slice(0,10),
         cod,
         paulProdutos[cod] || cod,
         partes[0] || '',
         partes.slice(1).join(' - ') || '',
+        nropedido || '',
         m.tipo === 'entrada' ? Number(m.quantidade) : -Number(m.quantidade),
         m.tipo === 'entrada' ? 'Entrada' : 'Saída'
       ]);
@@ -4822,10 +4824,10 @@
     document.getElementById('pest-data').value    = data;
     document.getElementById('pest-produto').value = String(cod);
     document.getElementById('pest-qtd').value     = tipo === 'saida' ? -Math.abs(qtd) : Math.abs(qtd);
-    // Tenta separar "TipoLabel - detalhe" de volta nos campos
-    const sepIdx2 = (obs||'').indexOf(' - ');
-    const tipoLabelEst = sepIdx2 > -1 ? obs.slice(0, sepIdx2) : (obs || '');
-    const detalheEst   = sepIdx2 > -1 ? obs.slice(sepIdx2 + 3) : '';
+    const { obsBase } = _estParsarObs(obs);
+    const sepIdx2 = obsBase.indexOf(' - ');
+    const tipoLabelEst = sepIdx2 > -1 ? obsBase.slice(0, sepIdx2) : (obsBase || '');
+    const detalheEst   = sepIdx2 > -1 ? obsBase.slice(sepIdx2 + 3) : '';
     const selEst = document.getElementById('pest-tipo');
     const optEst = selEst ? Array.from(selEst.options).find(o => o.value === tipoLabelEst) : null;
     if (selEst) selEst.value = optEst ? tipoLabelEst : '';
@@ -4850,6 +4852,18 @@
     document.getElementById('pest-btn-cancelar').style.display = 'none';
   }
 
+  function _estParsarObs(observacao) {
+    const raw = observacao || '';
+    const nrIdx = raw.indexOf('|NR|');
+    return {
+      obsBase:   nrIdx > -1 ? raw.slice(0, nrIdx) : raw,
+      nropedido: nrIdx > -1 ? raw.slice(nrIdx + 4) : ''
+    };
+  }
+  function _estMontarObs(obsBase, nropedido) {
+    return obsBase + (nropedido ? '|NR|' + nropedido : '');
+  }
+
   async function salvarMovEstoque() {
     if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
     const data      = document.getElementById('pest-data').value;
@@ -4862,23 +4876,61 @@
     if (!cod)                  { alert('Selecione o produto.'); return; }
     if (!qtd || qtd === 0)     { alert('Informe a quantidade (positivo = Entrada, negativo = Saída).'); return; }
 
-    const tipoApi    = qtd > 0 ? 'entrada' : 'saida';
-    const qtdAbs     = Math.abs(qtd);
-    const obsCompleta = tipoLabel + (obsExtra ? ' - ' + obsExtra : '');
+    const tipoApi     = qtd > 0 ? 'entrada' : 'saida';
+    const qtdAbs      = Math.abs(qtd);
+    const obsBase     = tipoLabel + (obsExtra ? ' - ' + obsExtra : '');
 
     try {
       const acao = paulEstEditId ? 'editado' : 'incluído';
       if (paulEstEditId) {
+        const mExist = window._paulEstMap && window._paulEstMap[paulEstEditId];
+        const { nropedido: nrExist } = _estParsarObs(mExist ? mExist.observacao : '');
+        const obsCompleta = _estMontarObs(obsBase, nrExist);
         await paulFetch('DELETE', '/paulistinha/estoque/' + paulEstEditId);
+        const res = await paulFetch('POST', '/paulistinha/estoque', {
+          data, tipo: tipoApi, produto_cod: parseInt(cod), quantidade: qtdAbs, observacao: obsCompleta
+        });
+        const novoId = (res && res.id) ? res.id : null;
+        if (novoId) paulHistoricoSet('est_' + novoId, currentUser, acao);
+      } else {
+        const res = await paulFetch('POST', '/paulistinha/estoque', {
+          data, tipo: tipoApi, produto_cod: parseInt(cod), quantidade: qtdAbs, observacao: obsBase
+        });
+        const novoId = (res && res.id) ? res.id : null;
+        if (novoId) paulHistoricoSet('est_' + novoId, currentUser, acao);
       }
-      const res = await paulFetch('POST', '/paulistinha/estoque', {
-        data, tipo: tipoApi, produto_cod: parseInt(cod), quantidade: qtdAbs, observacao: obsCompleta
-      });
-      const novoId = (res && res.id) ? res.id : null;
-      if (novoId) paulHistoricoSet('est_' + novoId, currentUser, acao);
       cancelarEdicaoEstoque();
       renderEstoque();
     } catch(e) { alert('❌ Erro ao salvar movimentação:\n' + e.message); }
+  }
+
+  function abrirNroPedidoEst(id) {
+    const form = document.getElementById('pest-ped-form-' + id);
+    if (form) { form.style.display = ''; document.getElementById('pest-ped-input-' + id).focus(); }
+  }
+  function fecharNroPedidoEst(id) {
+    const form = document.getElementById('pest-ped-form-' + id);
+    if (form) form.style.display = 'none';
+  }
+  async function salvarNroPedidoEst(id) {
+    if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
+    const nropedido = (document.getElementById('pest-ped-input-' + id).value || '').trim();
+    const m = window._paulEstMap && window._paulEstMap[id];
+    if (!m) { alert('Movimentação não encontrada.'); return; }
+    try {
+      const { obsBase } = _estParsarObs(m.observacao);
+      const obsCompleta = _estMontarObs(obsBase, nropedido);
+      await paulFetch('DELETE', '/paulistinha/estoque/' + id);
+      const res = await paulFetch('POST', '/paulistinha/estoque', {
+        data: String(m.data).slice(0,10),
+        tipo: m.tipo,
+        produto_cod: m.produto_cod,
+        quantidade: Number(m.quantidade),
+        observacao: obsCompleta
+      });
+      if (res && res.id) paulHistoricoSet('est_' + res.id, currentUser, 'pedido atualizado');
+      renderEstoque();
+    } catch(e) { alert('❌ Erro ao salvar Nº Pedido:\n' + e.message); }
   }
 
   async function excluirMovEstoque(id) {
@@ -4934,18 +4986,44 @@
         const nomeProd = paulProdutos[cod] || cod;
         const fmtQtd  = Number(m.quantidade).toLocaleString('pt-BR');
         const dataStr = String(m.data).slice(0,10).split('-').reverse().join('/');
-        const obsEsc  = (m.observacao || '').replace(/'/g, "\\'");
         const dataEsc = String(m.data).slice(0,10);
-        return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);">' +
-          '<div style="width:34px;height:34px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:11px;font-weight:700;color:var(--text-muted);">[' + cod + '] ' + nomeProd + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted);">' + dataStr + (m.observacao?' · '+m.observacao:'') + '</div>' +
-            (paulHistoricoLabel('est_' + m.id) ? '<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">' + paulHistoricoLabel('est_' + m.id) + '</div>' : '') +
+        const { obsBase, nropedido: nroped } = _estParsarObs(m.observacao);
+        const obsPartes = obsBase.split(' - ');
+        const obsTipo   = obsPartes[0];
+        const obsDetalhe = obsPartes.slice(1).join(' - ');
+        const cardBg = nroped
+          ? (m.tipo==='entrada' ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)')
+          : 'transparent';
+        const cardBorder = nroped
+          ? (m.tipo==='entrada' ? '1.5px solid rgba(34,197,94,0.25)' : '1.5px solid rgba(239,68,68,0.25)')
+          : '0';
+        return '<div style="padding:7px 8px;margin-bottom:4px;border-radius:10px;background:' + cardBg + ';border:' + cardBorder + ';">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<div style="width:30px;height:30px;border-radius:50%;background:' + (m.tipo==='entrada'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">' + (m.tipo==='entrada'?'↑':'↓') + '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">[' + cod + '] ' + nomeProd + '</div>' +
+              '<div style="font-size:10px;color:var(--text-muted);">' + dataStr + (obsTipo ? ' · ' + obsTipo : '') + (obsDetalhe ? ' - ' + obsDetalhe : '') + '</div>' +
+              (paulHistoricoLabel('est_' + m.id) ? '<div style="font-size:9px;color:var(--text-muted);">' + paulHistoricoLabel('est_' + m.id) + '</div>' : '') +
+              '<div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">' +
+                (nroped
+                  ? '<span style="font-size:10px;color:#6366f1;font-weight:700;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:5px;padding:1px 6px;">📋 Nº ' + nroped + '</span>'
+                  : '<span style="font-size:10px;color:var(--text-muted);background:rgba(156,163,175,0.1);border:1px solid rgba(156,163,175,0.2);border-radius:5px;padding:1px 6px;">📋 sem pedido</span>') +
+                (podeEditarEst ? '<button onclick="abrirNroPedidoEst(' + m.id + ')" style="font-size:10px;padding:1px 7px;border-radius:5px;border:1px solid rgba(99,102,241,0.4);background:transparent;color:#6366f1;cursor:pointer;font-weight:600;">' + (nroped ? 'Alterar' : 'Informar Nº') + '</button>' : '') +
+              '</div>' +
+            '</div>' +
+            '<div style="font-size:13px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + fmtQtd + ' cx</div>' +
+            (podeEditarEst ? '<button onclick="editarMovEstoque(' + m.id + ',\'' + dataEsc + '\',\'' + m.tipo + '\',' + m.produto_cod + ',' + m.quantidade + ',\'\')" style="background:none;border:none;color:#f59e0b;font-size:15px;cursor:pointer;padding:3px;flex-shrink:0;" title="Alterar">✏️</button>' : '') +
+            (podeEditarEst ? '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:15px;cursor:pointer;padding:3px;flex-shrink:0;" title="Excluir">🗑</button>' : '') +
           '</div>' +
-          '<div style="font-size:13px;font-weight:700;color:' + (m.tipo==='entrada'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (m.tipo==='entrada'?'+':'-') + fmtQtd + ' cx</div>' +
-          (podeEditarEst ? '<button onclick="editarMovEstoque(' + m.id + ',\'' + dataEsc + '\',\'' + m.tipo + '\',' + m.produto_cod + ',' + m.quantidade + ',\'' + obsEsc + '\')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Alterar">✏️</button>' : '') +
-          (podeEditarEst ? '<button onclick="excluirMovEstoque(' + m.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' : '') +
+          (podeEditarEst ?
+            '<div id="pest-ped-form-' + m.id + '" style="display:none;margin:5px 0 0 38px;">' +
+              '<div style="display:flex;align-items:center;gap:5px;">' +
+                '<input id="pest-ped-input-' + m.id + '" type="text" maxlength="30" placeholder="Nº do Pedido..." value="' + nroped + '" style="flex:1;padding:4px 8px;border:1.5px solid #6366f1;border-radius:7px;font-size:12px;background:var(--surface);color:var(--text);" />' +
+                '<button onclick="salvarNroPedidoEst(' + m.id + ')" style="padding:4px 9px;border-radius:7px;border:none;background:#6366f1;color:white;font-size:12px;font-weight:700;cursor:pointer;">✓</button>' +
+                '<button onclick="fecharNroPedidoEst(' + m.id + ')" style="padding:4px 7px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;">✕</button>' +
+              '</div>' +
+            '</div>'
+          : '') +
         '</div>';
       }).join('');
     } catch(e) {
