@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v94</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v95</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -4657,8 +4657,10 @@
 
     try {
       if (paulFinEditId) {
+        const lExist = window._paulFinMap && window._paulFinMap[paulFinEditId];
+        const nropedidoExist = lExist ? (lExist.nropedido || '') : '';
         await paulFetch('DELETE', '/paulistinha/financeiro/' + paulFinEditId);
-        const res = await paulFetch('POST', '/paulistinha/financeiro', { data, tipo, descricao, valor: valorAbs });
+        const res = await paulFetch('POST', '/paulistinha/financeiro', { data, tipo, descricao, valor: valorAbs, nropedido: nropedidoExist });
         const novoId = (res && res.id) ? res.id : null;
         if (novoId) paulHistoricoSet('fin_' + novoId, currentUser, 'editado');
         cancelarEditLancFin();
@@ -4671,6 +4673,33 @@
       }
       renderFinanceiro();
     } catch(e) { alert('❌ Erro ao salvar lançamento:\n' + e.message); }
+  }
+
+  function abrirNroPedidoFin(id) {
+    const form = document.getElementById('pfin-ped-form-' + id);
+    if (form) { form.style.display = ''; document.getElementById('pfin-ped-input-' + id).focus(); }
+  }
+  function fecharNroPedidoFin(id) {
+    const form = document.getElementById('pfin-ped-form-' + id);
+    if (form) form.style.display = 'none';
+  }
+  async function salvarNroPedidoFin(id) {
+    if (!paulPodeEditar()) { alert('⛔ Sem permissão para esta ação.'); return; }
+    const nropedido = (document.getElementById('pfin-ped-input-' + id).value || '').trim();
+    const l = window._paulFinMap && window._paulFinMap[id];
+    if (!l) { alert('Lançamento não encontrado.'); return; }
+    try {
+      await paulFetch('DELETE', '/paulistinha/financeiro/' + id);
+      const res = await paulFetch('POST', '/paulistinha/financeiro', {
+        data: String(l.data).slice(0,10),
+        tipo: l.tipo,
+        descricao: l.descricao || '',
+        valor: Number(l.valor),
+        nropedido: nropedido
+      });
+      if (res && res.id) paulHistoricoSet('fin_' + res.id, currentUser, 'pedido atualizado');
+      renderFinanceiro();
+    } catch(e) { alert('❌ Erro ao salvar Nº Pedido:\n' + e.message); }
   }
 
   async function excluirLancFin(id) {
@@ -4726,17 +4755,37 @@
         const partes = (l.descricao||'').split(' - ');
         const motivo = partes[0];
         const detalhe = partes.slice(1).join(' - ');
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
-          '<div style="width:36px;height:36px;border-radius:50%;background:' + (l.tipo==='cred'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (l.tipo==='cred'?'↑':'↓') + '</div>' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + motivo + '</div>' +
-            (detalhe ? '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;">' + detalhe + '</div>' : '') +
-            '<div style="font-size:11px;color:var(--text-muted);margin-top:1px;">' + String(l.data).slice(0,10).split('-').reverse().join('/') + '</div>' +
-            (paulHistoricoLabel('fin_' + l.id) ? '<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">' + paulHistoricoLabel('fin_' + l.id) + '</div>' : '') +
+        const nroped = (l.nropedido || '').toString().trim();
+        return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div style="width:36px;height:36px;border-radius:50%;background:' + (l.tipo==='cred'?'rgba(34,197,94,0.12)':'rgba(239,68,68,0.12)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">' + (l.tipo==='cred'?'↑':'↓') + '</div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + motivo + '</div>' +
+              (detalhe ? '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;">' + detalhe + '</div>' : '') +
+              '<div style="font-size:11px;color:var(--text-muted);margin-top:1px;">' + String(l.data).slice(0,10).split('-').reverse().join('/') + '</div>' +
+              (paulHistoricoLabel('fin_' + l.id) ? '<div style="font-size:10px;color:var(--text-muted);margin-top:1px;">' + paulHistoricoLabel('fin_' + l.id) + '</div>' : '') +
+              (nroped ? '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:6px;padding:2px 7px;">' +
+                '<span style="font-size:10px;color:#6366f1;font-weight:700;">📋 Pedido Nº ' + nroped + '</span>' +
+              '</div>' : '<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;background:rgba(156,163,175,0.1);border:1px solid rgba(156,163,175,0.25);border-radius:6px;padding:2px 7px;">' +
+                '<span style="font-size:10px;color:var(--text-muted);">📋 Pedido: não informado</span>' +
+              '</div>') +
+            '</div>' +
+            '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
+            (podeEditarFin ? '<button onclick="editarLancFinById(' + l.id + ')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Editar">✏️</button>' : '') +
+            (podeEditarFin ? '<button onclick="excluirLancFin(' + l.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' : '') +
           '</div>' +
-          '<div style="font-size:14px;font-weight:700;color:' + (l.tipo==='cred'?'var(--success)':'var(--danger)') + ';flex-shrink:0;">' + (l.tipo==='cred'?'+':'-') + fmtMoeda(val) + '</div>' +
-          (podeEditarFin ? '<button onclick="editarLancFinById(' + l.id + ')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Editar">✏️</button>' : '') +
-          (podeEditarFin ? '<button onclick="excluirLancFin(' + l.id + ')" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;" title="Excluir">🗑</button>' : '') +
+          (podeEditarFin ?
+            '<div id="pfin-ped-form-' + l.id + '" style="display:none;margin:6px 0 2px 46px;">' +
+              '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<input id="pfin-ped-input-' + l.id + '" type="text" maxlength="30" placeholder="Nº do Pedido..." value="' + nroped + '" style="flex:1;padding:5px 9px;border:1.5px solid #6366f1;border-radius:8px;font-size:12px;background:var(--surface);color:var(--text);" />' +
+                '<button onclick="salvarNroPedidoFin(' + l.id + ')" style="padding:5px 10px;border-radius:8px;border:none;background:#6366f1;color:white;font-size:12px;font-weight:700;cursor:pointer;">✓ Salvar</button>' +
+                '<button onclick="fecharNroPedidoFin(' + l.id + ')" style="padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;">✕</button>' +
+              '</div>' +
+            '</div>' +
+            '<div style="margin:4px 0 0 46px;">' +
+              '<button onclick="abrirNroPedidoFin(' + l.id + ')" style="font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid rgba(99,102,241,0.4);background:transparent;color:#6366f1;cursor:pointer;font-weight:600;">📋 ' + (nroped ? 'Alterar Nº Pedido' : 'Informar Nº Pedido') + '</button>' +
+            '</div>'
+          : '') +
         '</div>';
       }).join('');
     } catch(e) {
