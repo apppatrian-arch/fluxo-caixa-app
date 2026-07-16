@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v101</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v102</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -1162,28 +1162,11 @@
         </div>
         <!-- Cards de resumo -->
         <div id="pvend-resumo" style="display:none;margin-bottom:14px;">
-          <!-- Totais gerais -->
-          <div style="background:rgba(99,102,241,0.08);border:1.5px solid #6366f1;border-radius:12px;padding:14px;margin-bottom:10px;">
-            <div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;">📊 Resumo Geral</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <div>
-                <div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Encomenda</div>
-                <div id="pvend-total-fat" style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;">R$ 0</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Pago</div>
-                <div id="pvend-total-pag" style="font-size:14px;font-weight:800;color:var(--success);margin-top:3px;">R$ 0</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">A Receber</div>
-                <div id="pvend-total-pend" style="font-size:14px;font-weight:800;color:#f59e0b;margin-top:3px;">R$ 0</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Total Kg</div>
-                <div id="pvend-total-kg" style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px;">0 kg</div>
-              </div>
-            </div>
-          </div>
+          <!-- ids mantidos para compatibilidade com JS (elementos ocultos) -->
+          <span id="pvend-total-fat" style="display:none;"></span>
+          <span id="pvend-total-pag" style="display:none;"></span>
+          <span id="pvend-total-pend" style="display:none;"></span>
+          <span id="pvend-total-kg" style="display:none;"></span>
           <!-- Totais agrupados por tipo -->
           <div id="pvend-por-tipo"></div>
           <!-- Gráfico Evolução Mensal Vendas -->
@@ -4071,22 +4054,7 @@
           '</div>' +
         '</div>';
       }).join('');
-      // Card (=) Receita Operacional = Vendas - Devoluções
-      const recVal = Object.entries(porTipo).filter(([k]) => _isPosType(k)).reduce((s,[,t]) => s + t.val, 0)
-                   - Object.entries(porTipo).filter(([k]) => _isDevType(k)).reduce((s,[,t]) => s + t.val, 0);
-      const recKg  = Object.entries(porTipo).filter(([k]) => _isPosType(k)).reduce((s,[,t]) => s + t.kg, 0)
-                   - Object.entries(porTipo).filter(([k]) => _isDevType(k)).reduce((s,[,t]) => s + t.kg, 0);
-      const recHtml =
-        '<div style="background:rgba(99,102,241,0.1);border:2px solid #6366f1;border-radius:12px;padding:12px 14px;margin-top:4px;">' +
-          '<div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:10px;">(=) ENCOMENDA OPERACIONAL</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.4px;">Valor</div>' +
-              '<div style="font-size:15px;font-weight:800;color:#6366f1;margin-top:3px;">' + fmtR(recVal) + '</div></div>' +
-            '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.4px;">KG</div>' +
-              '<div style="font-size:15px;font-weight:800;color:#6366f1;margin-top:3px;">' + fmtKg(recKg) + '</div></div>' +
-          '</div>' +
-        '</div>';
-      document.getElementById('pvend-por-tipo').innerHTML = tiposHtml + recHtml;
+      document.getElementById('pvend-por-tipo').innerHTML = tiposHtml;
       document.getElementById('pvend-resumo').style.display = 'block';
       window._pvendDados = dados;
       renderPvendChart(dados);
