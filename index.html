@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v100</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v101</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -1925,7 +1925,7 @@
 
   // ── HELPERS TIPO INDUSTRIA A ──
   function _isPosType(t) { const s = (t||'').trim(); const c = s.toLowerCase().split(' ')[0]; return c === 'venda' || c === 'entrega' || c === 'encomenda' || /- c$/i.test(s); }
-  function _isDevType(t) { const c = (t||'').toLowerCase().split(' ')[0]; return c === 'devolucao' || c === 'devolução'; }
+  function _isDevType(t) { const s = (t||'').trim(); const c = s.toLowerCase().split(' ')[0]; return c === 'devolucao' || c === 'devolução' || /- d$/i.test(s); }
 
   // ── GRÁFICOS PAULISTINHA ──
   let pfin_chart = null, pest_chart = null, pvend_chart = null;
@@ -4057,7 +4057,7 @@
         const pctDev = isDev && kgVendas > 0
           ? (t.kg / kgVendas * 100).toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1}) + '%'
           : null;
-        const tipoDisplay = _isPosType(tipo) ? tipo.replace(/^Venda\b/i, 'Encomenda') : tipo;
+        const tipoDisplay = tipo;
         return '<div style="background:' + estilo.bg + ';border:1.5px solid ' + estilo.borda + ';border-radius:12px;padding:12px 14px;margin-bottom:8px;">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
             '<div style="font-size:12px;font-weight:700;color:' + estilo.cor + ';">' + estilo.icone + ' ' + tipoDisplay + '</div>' +
@@ -4102,7 +4102,7 @@
         const corTipo = isDev ? 'var(--danger)' : 'var(--success)';
         const statusIcon = isDev ? '↩' : (pago ? '✅' : '⏳');
         const statusCor  = isDev ? 'var(--danger)' : (pago ? 'var(--success)' : '#f59e0b');
-        const tipoLabel = _isPosType(v.tipo) ? 'Encomenda' : (v.tipo || '').split(' - ')[0];
+        const tipoLabel = (v.tipo || '').split(' - ')[0];
         return '<tr style="background:' + bg + ';">' +
           '<td style="padding:8px 10px;font-size:11px;white-space:nowrap;border-bottom:1px solid var(--border);">' + dataPed + '</td>' +
           '<td style="padding:8px 10px;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">' + (v.nropedido||'—') + '</td>' +
