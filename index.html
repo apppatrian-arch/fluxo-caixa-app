@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v104</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v105</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -4049,9 +4049,8 @@
             '<div style="font-size:12px;font-weight:700;color:' + estilo.cor + ';">' + estilo.icone + ' ' + tipoDisplay + '</div>' +
             '<div style="font-size:11px;color:var(--text-muted);">' + t.qtd + ' registro' + (t.qtd>1?'s':'') + '</div>' +
           '</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr' + (pctDev ? ' 1fr' : '') + ';gap:6px;">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr' + (pctDev ? ' 1fr' : '') + ';gap:6px;">' +
             '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Valor</div><div style="font-size:12px;font-weight:800;color:' + estilo.cor + ';">' + fmtR(t.val) + '</div></div>' +
-            '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Pago</div><div style="font-size:12px;font-weight:800;color:var(--success);">' + fmtR(t.pag) + '</div></div>' +
             '<div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Kg</div><div style="font-size:12px;font-weight:800;color:var(--text);">' + fmtKg(t.kg) + '</div></div>' +
             (pctDev ? '<div style="background:rgba(239,68,68,0.12);border-radius:8px;padding:4px 6px;text-align:center;"><div style="font-size:9px;color:#ef4444;text-transform:uppercase;font-weight:600;">% Dev/Venda</div><div style="font-size:14px;font-weight:800;color:#ef4444;">' + pctDev + '</div></div>' : '') +
           '</div>' +
