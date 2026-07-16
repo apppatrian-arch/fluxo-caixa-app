@@ -690,7 +690,7 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v98</strong></div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v99</strong></div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
           </div>
         </div>
@@ -4415,15 +4415,33 @@
         const cor     = corPerfil[u.perfil] || 'var(--text-muted)';
         const bg      = bgPerfil[u.perfil]  || 'var(--surface)';
         const euAdmin = u.email.toLowerCase() === (currentUser||'').toLowerCase() && u.perfil === 'admin';
-        return '<div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:13px;font-weight:700;color:var(--text);">' + u.nome + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + u.email + '</div>' +
+        return '<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:13px;font-weight:700;color:var(--text);">' + u.nome + '</div>' +
+              '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + u.email + '</div>' +
+            '</div>' +
+            '<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:' + bg + ';color:' + cor + ';white-space:nowrap;">' +
+              (u.perfil === 'admin' ? 'Admin' : u.perfil === 'editor' ? 'Editor' : 'Leitura') +
+            '</span>' +
+            (euAdmin ? '' :
+              '<button onclick="paulAbrirEditarPerfil(' + u.id + ')" style="background:none;border:none;color:#f59e0b;font-size:15px;cursor:pointer;padding:2px 4px;" title="Alterar perfil">✏️</button>' +
+              '<button onclick="paulRemoverUsuario(' + u.id + ')" style="background:none;border:none;color:var(--danger);font-size:15px;cursor:pointer;padding:2px 4px;" title="Remover">🗑</button>'
+            ) +
           '</div>' +
-          '<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:' + bg + ';color:' + cor + ';white-space:nowrap;">' +
-            (u.perfil === 'admin' ? 'Admin' : u.perfil === 'editor' ? 'Editor' : 'Leitura') +
-          '</span>' +
-          (euAdmin ? '' : '<button onclick="paulRemoverUsuario(' + u.id + ')" style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:2px 4px;" title="Remover">🗑</button>') +
+          (euAdmin ? '' :
+            '<div id="paul-edit-form-' + u.id + '" style="display:none;margin-top:8px;display:none;">' +
+              '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<select id="paul-edit-perfil-' + u.id + '" style="flex:1;font-size:12px;padding:5px 6px;border:1.5px solid #f59e0b;border-radius:8px;background:var(--bg);color:var(--text);">' +
+                  '<option value="leitura"' + (u.perfil==='leitura'?' selected':'') + '>Leitura — somente visualiza</option>' +
+                  '<option value="editor"' + (u.perfil==='editor'?' selected':'') + '>Editor — inclui e edita</option>' +
+                  '<option value="admin"' + (u.perfil==='admin'?' selected':'') + '>Admin — acesso total</option>' +
+                '</select>' +
+                '<button onclick="paulSalvarPerfil(' + u.id + ',\'' + u.nome.replace(/'/g,"\\'") + '\',\'' + u.email + '\')" style="padding:5px 10px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✓ Salvar</button>' +
+                '<button onclick="paulFecharEditarPerfil(' + u.id + ')" style="padding:5px 8px;background:transparent;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text-muted);cursor:pointer;">✕</button>' +
+              '</div>' +
+            '</div>'
+          ) +
         '</div>';
       }).join('');
     }
@@ -4436,6 +4454,25 @@
     await paulFetch('DELETE', '/paulistinha/usuarios/' + id);
     await paulFetch('POST', '/paulistinha/usuarios', { nome: nomeAtual + '|' + novoPerfil, email, senha_hash: 'x' });
     await renderListaUsuarios();
+  }
+
+  function paulAbrirEditarPerfil(id) {
+    const el = document.getElementById('paul-edit-form-' + id);
+    if (el) el.style.display = '';
+  }
+  function paulFecharEditarPerfil(id) {
+    const el = document.getElementById('paul-edit-form-' + id);
+    if (el) el.style.display = 'none';
+  }
+  async function paulSalvarPerfil(id, nomeAtual, email) {
+    const sel = document.getElementById('paul-edit-perfil-' + id);
+    const novoPerfil = sel ? sel.value : 'leitura';
+    try {
+      await paulFetch('DELETE', '/paulistinha/usuarios/' + id);
+      await paulFetch('POST', '/paulistinha/usuarios', { nome: nomeAtual + '|' + novoPerfil, email, senha_hash: 'x' });
+      await paulUsuariosCarregar();
+      await renderListaUsuarios();
+    } catch(e) { alert('❌ Erro ao alterar perfil:\n' + e.message); }
   }
 
   async function paulAdicionarUsuario() {
