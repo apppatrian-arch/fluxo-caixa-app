@@ -690,8 +690,8 @@
             🚪 Sair
           </button>
           <div style="padding:10px 14px;background:var(--bg);border-top:1px solid var(--border);text-align:center;">
-            <div style="font-size:11px;color:var(--text-muted);">Versão <strong style="color:var(--text);">v108</strong></div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">29/06/2026 às 11:00</div>
+            <div style="font-size:11px;color:var(--text-muted);">Versão <strong id="paul-menu-versao" style="color:var(--text);">v111</strong></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;" id="paul-menu-versao-data">17/07/2026 às 10:30</div>
           </div>
         </div>
       </div>
@@ -3335,6 +3335,16 @@
 
   // Registra Service Worker — detecta atualização e recarrega automaticamente
   if ('serviceWorker' in navigator) {
+    caches.keys().then(keys => {
+      const cacheKey = keys.find(k => k.startsWith('fluxo-caixa-v'));
+      if (cacheKey) {
+        const match = cacheKey.match(/fluxo-caixa-(v\d+)/);
+        if (match) {
+          const el = document.getElementById('paul-menu-versao');
+          if (el) el.textContent = match[1];
+        }
+      }
+    });
     navigator.serviceWorker.register('./sw.js').then(reg => {
       // Verifica se já existe uma nova versão aguardando
       if (reg.waiting) {
