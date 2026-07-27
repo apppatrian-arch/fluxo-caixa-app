@@ -3580,7 +3580,7 @@
       for (const r of existentes) await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id);
       const res = await paulFetch('POST', '/paulistinha/financeiro', {
         data: _CFG_DATE, tipo: _CFG_TIPO,
-        descricao: prefix + _cartB64Enc(carteiras), valor: 0
+        descricao: prefix + _cartB64Enc(carteiras), valor: 0.01
       });
       if (!res || !res.id) throw new Error('POST não retornou ID. Resposta: ' + JSON.stringify(res));
       _setSyncStatus('✅ Salvo no banco (' + carteiras.length + ' carteira(s))', true);
