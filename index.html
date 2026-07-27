@@ -3561,7 +3561,17 @@
           return { idx: sep > -1 ? parseInt(rest.slice(0, sep)) || 0 : 0, data: sep > -1 ? rest.slice(sep + 1) : rest };
         }).sort((a, b) => a.idx - b.idx);
         const encoded = chunks.map(c => c.data).join('');
-        try { carteiras = _cartB64Dec(encoded); } catch(e) { carteiras = JSON.parse(encoded); }
+        let decoded = null;
+        try { decoded = _cartB64Dec(encoded); } catch(e) { /* dado corrompido/antigo */ }
+        if (!decoded || !Array.isArray(decoded)) {
+          // Registro antigo ou corrompido — apaga do banco e usa localStorage
+          for (const r of cfgRecs) {
+            try { await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id); } catch(_) {}
+          }
+          _setSyncStatus('⚠️ Dado antigo removido — salve para atualizar o banco', null);
+          return false;
+        }
+        carteiras = decoded;
         localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
         _setSyncStatus('✅ Banco de dados (' + carteiras.length + ' carteira(s))', true);
         return true;
