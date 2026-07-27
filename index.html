@@ -1254,10 +1254,14 @@
 
       <!-- Minhas Carteiras -->
       <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <div style="font-size:13px;font-weight:700;">💼 Minhas Carteiras</div>
-          <button onclick="abrirModalCarteira()" style="padding:7px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">+ Nova Carteira</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="forcaSincCarteiras()" title="Sincronizar com banco de dados" style="padding:6px 10px;background:transparent;border:1.5px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-muted);">🔄</button>
+            <button onclick="abrirModalCarteira()" style="padding:7px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">+ Nova Carteira</button>
+          </div>
         </div>
+        <div id="acoes-sync-status" style="font-size:10px;color:var(--text-muted);margin-bottom:10px;"></div>
         <div id="carteiras-lista"></div>
       </div>
 
@@ -3523,38 +3527,74 @@
   const _CFG_TIPO = '_cfg';
 
   function _chavCarteiras() { return chaveLocal('carteiras'); }
-  // Email sempre em lowercase para garantir match entre dispositivos
   function _cfgPrefix() { return '_carteiras_' + (currentUser || '').toLowerCase() + '|'; }
 
+  function _cartB64Enc(data) {
+    try { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); }
+    catch(e) { return btoa(JSON.stringify(data)); }
+  }
+  function _cartB64Dec(str) {
+    try { return JSON.parse(decodeURIComponent(escape(atob(str)))); }
+    catch(e) { return JSON.parse(atob(str)); }
+  }
+
+  function _setSyncStatus(msg, ok) {
+    const el = document.getElementById('acoes-sync-status');
+    if (el) el.innerHTML = '<span style="color:' + (ok ? '#22c55e' : (ok === false ? '#ef4444' : 'var(--text-muted)')) + ';">' + msg + '</span>';
+  }
+
   async function carregarCarteirasDB() {
+    _setSyncStatus('⏳ Sincronizando...', null);
     try {
-      // Sem date params — mesma chamada do renderFinanceiro (API filtra server-side pode não existir)
+      if (!paulToken) await paulAuth();
       const records = await paulFetch('GET', '/paulistinha/financeiro');
+      const total = (records || []).length;
       const prefix = _cfgPrefix();
       const cfg = (records || []).find(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
       if (cfg) {
-        carteiras = JSON.parse(String(cfg.descricao).slice(prefix.length));
+        const b64 = String(cfg.descricao).slice(prefix.length);
+        try {
+          carteiras = _cartB64Dec(b64);
+        } catch(pe) {
+          // fallback: tenta JSON direto (registros antigos antes do base64)
+          carteiras = JSON.parse(b64);
+        }
         localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
+        _setSyncStatus('✅ Banco de dados (' + carteiras.length + ' carteira(s) — ' + total + ' registros lidos)', true);
         return true;
       }
-    } catch(e) { console.warn('Carregar carteiras DB:', e.message); }
+      _setSyncStatus('⚠️ Sem dados no banco (' + total + ' registros lidos, prefixo: ' + prefix + ')', false);
+    } catch(e) {
+      _setSyncStatus('❌ Erro: ' + e.message, false);
+    }
     return false;
   }
 
   async function sincronizarCarteirasDB() {
     try {
+      if (!paulToken) await paulAuth();
       const records = await paulFetch('GET', '/paulistinha/financeiro');
       const prefix = _cfgPrefix();
       const existentes = (records || []).filter(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
       for (const r of existentes) await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id);
       const res = await paulFetch('POST', '/paulistinha/financeiro', {
         data: _CFG_DATE, tipo: _CFG_TIPO,
-        descricao: prefix + JSON.stringify(carteiras), valor: 0
+        descricao: prefix + _cartB64Enc(carteiras), valor: 0
       });
-      if (!res || !res.id) throw new Error('POST não retornou ID');
+      if (!res || !res.id) throw new Error('POST não retornou ID. Resposta: ' + JSON.stringify(res));
+      _setSyncStatus('✅ Salvo no banco (' + carteiras.length + ' carteira(s))', true);
     } catch(e) {
-      alert('⚠️ Erro ao sincronizar carteiras com o banco:\n' + e.message + '\n\nOs dados foram salvos localmente.');
+      _setSyncStatus('❌ Erro ao salvar: ' + e.message, false);
+      alert('⚠️ Erro ao sincronizar carteiras:\n' + e.message + '\n\nDados salvos localmente.');
     }
+  }
+
+  async function forcaSincCarteiras() {
+    const loaded = await carregarCarteirasDB();
+    if (!loaded) {
+      carteiras = JSON.parse(localStorage.getItem(_chavCarteiras()) || '[]');
+    }
+    renderCarteiras();
   }
 
   function salvarCarteiras() {
