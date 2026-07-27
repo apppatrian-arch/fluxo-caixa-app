@@ -1628,7 +1628,7 @@
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(catRows), 'Categorias');
 
       // Carteiras de ações
-      const carteirasSalvas = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+      const carteirasSalvas = JSON.parse(localStorage.getItem(chaveLocal('carteiras')) || '[]');
       const cartRows = [['CarteiraID','CarteiraNome','AcaoID','Ticker','Quantidade','CustoUnitario','PrecoAtual']];
       carteirasSalvas.forEach(c => {
         (c.acoes || []).forEach(a => {
@@ -1710,13 +1710,13 @@
             if (!carteiraMap[cId]) carteiraMap[cId] = { id: cId, nome: cNome, acoes: [] };
             if (r[2]) carteiraMap[cId].acoes.push({ id: String(r[2]), ticker: String(r[3]||''), qtd: Number(r[4])||0, custo: Number(r[5])||0, precoAtual: r[6] ? Number(r[6]) : undefined });
           });
-          localStorage.setItem('fc_carteiras', JSON.stringify(Object.values(carteiraMap)));
+          localStorage.setItem(chaveLocal('carteiras'), JSON.stringify(Object.values(carteiraMap)));
         }
 
         sincronizar();
         document.getElementById('menu-perfil').style.display = 'none';
         renderLancamentos();
-        const carteiraImport = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+        const carteiraImport = JSON.parse(localStorage.getItem(chaveLocal('carteiras')) || '[]');
         const totalAcoesImport = carteiraImport.reduce((s, c) => s + (c.acoes||[]).length, 0);
         alert('✅ Backup importado com sucesso!\n\n' + lancamentos.length + ' lançamentos, ' + pessoas.length + ' pessoas, ' + recorrentes.length + ' recorrentes, ' + carteiraImport.length + ' carteiras (' + totalAcoesImport + ' ações).');
       } catch(err) {
@@ -3373,21 +3373,21 @@
   // ══════════════════════════════════════════
   function initAcoes() {
     renderTokenAcoes();
-    carteiras = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+    carteiras = JSON.parse(localStorage.getItem(_chavCarteiras()) || '[]');
     renderCarteiras();
   }
 
   function renderTokenAcoes() {
-    const token   = localStorage.getItem('fc_brapi_token') || '';
+    const me      = paulGetMinhaConta();
+    const token   = (me && me.btoken) || '';
     const boxCad  = document.getElementById('acoes-token-box');
     const boxSalvo= document.getElementById('acoes-token-salvo');
     if (token) {
       boxCad.style.display   = 'none';
       boxSalvo.style.display = 'block';
-      // Preview: mostra primeiros 6 e últimos 4 caracteres
       const preview = token.length > 12 ? token.slice(0,6) + '••••••••' + token.slice(-4) : token;
       document.getElementById('acoes-token-preview').textContent = preview;
-      const dataStr = localStorage.getItem('fc_brapi_token_data') || '';
+      const dataStr = (me && me.bdate) || '';
       document.getElementById('acoes-token-data').textContent = dataStr ? 'Salvo em: ' + dataStr : '';
     } else {
       boxCad.style.display   = 'block';
@@ -3396,18 +3396,27 @@
     }
   }
 
-  function salvarTokenAcoes() {
+  async function salvarTokenAcoes() {
     const token = document.getElementById('acoes-token-input').value.trim();
     if (!token) { alert('Cole o token antes de salvar.'); return; }
-    localStorage.setItem('fc_brapi_token', token);
+    const me = paulGetMinhaConta();
+    if (!me) { alert('Usuário não encontrado. Tente recarregar a página.'); return; }
     const agora = new Date();
     const dataStr = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-    localStorage.setItem('fc_brapi_token_data', dataStr);
-    renderTokenAcoes();
+    const nomeNovo = me.nome + '|' + me.perfil + '|btoken:' + token + '|bdate:' + dataStr;
+    try {
+      await paulFetch('DELETE', '/paulistinha/usuarios/' + me.id);
+      await paulFetch('POST', '/paulistinha/usuarios', { nome: nomeNovo, email: me.email, senha_hash: 'x' });
+      await paulUsuariosCarregar();
+      renderTokenAcoes();
+    } catch(e) {
+      alert('❌ Erro ao salvar token:\n' + e.message);
+    }
   }
 
   function copiarTokenAcoes() {
-    const token = localStorage.getItem('fc_brapi_token') || '';
+    const me = paulGetMinhaConta();
+    const token = (me && me.btoken) || '';
     if (!token) return;
     navigator.clipboard.writeText(token).then(() => {
       const btn = document.querySelector('#acoes-token-salvo button');
@@ -3419,15 +3428,17 @@
   }
 
   function alterarTokenAcoes() {
+    const me = paulGetMinhaConta();
     document.getElementById('acoes-token-salvo').style.display = 'none';
     document.getElementById('acoes-token-box').style.display   = 'block';
-    document.getElementById('acoes-token-input').value = localStorage.getItem('fc_brapi_token') || '';
+    document.getElementById('acoes-token-input').value = (me && me.btoken) || '';
     document.getElementById('acoes-token-input').focus();
     document.getElementById('acoes-token-input').select();
   }
 
   function brapiUrl(path) {
-    const token = localStorage.getItem('fc_brapi_token') || '';
+    const me    = paulGetMinhaConta();
+    const token = (me && me.btoken) || '';
     const sep   = path.includes('?') ? '&' : '?';
     return 'https://brapi.dev/api' + path + (token ? sep + 'token=' + token : '');
   }
@@ -3501,10 +3512,12 @@
   // ══════════════════════════════════════════
   //  CARTEIRAS DE AÇÕES
   // ══════════════════════════════════════════
-  let carteiras = JSON.parse(localStorage.getItem('fc_carteiras') || '[]');
+  let carteiras = [];
+
+  function _chavCarteiras() { return chaveLocal('carteiras'); }
 
   function salvarCarteiras() {
-    localStorage.setItem('fc_carteiras', JSON.stringify(carteiras));
+    localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
   }
 
   function abrirModalCarteira(id) {
@@ -4311,9 +4324,19 @@
     const raw = await paulFetch('GET', '/paulistinha/usuarios');
     _paulUsuariosCache = (raw || []).map(u => {
       const parts = String(u.nome || '').split('|');
-      return { id: u.id, nome: parts[0].trim(), email: u.email, perfil: parts[1] || 'leitura' };
+      let btoken = '', bdate = '';
+      parts.slice(2).forEach(p => {
+        if (p.startsWith('btoken:')) btoken = p.slice(7);
+        if (p.startsWith('bdate:')) bdate = p.slice(6);
+      });
+      return { id: u.id, nome: parts[0].trim(), email: u.email, perfil: parts[1] || 'leitura', btoken, bdate };
     });
     return _paulUsuariosCache;
+  }
+
+  function paulGetMinhaConta() {
+    const lista = paulUsuariosCache();
+    return lista.find(u => u.email.toLowerCase() === (currentUser||'').toLowerCase()) || null;
   }
 
   function paulUsuariosCache() {
