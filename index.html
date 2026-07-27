@@ -3544,29 +3544,31 @@
     if (el) el.innerHTML = '<span style="color:' + (ok ? '#22c55e' : (ok === false ? '#ef4444' : 'var(--text-muted)')) + ';">' + msg + '</span>';
   }
 
+  const _CHUNK_SIZE = 150; // seguro para VARCHAR(200) com espaço para prefix+index
+
   async function carregarCarteirasDB() {
     _setSyncStatus('⏳ Sincronizando...', null);
     try {
       if (!paulToken) await paulAuth();
       const records = await paulFetch('GET', '/paulistinha/financeiro');
-      const total = (records || []).length;
       const prefix = _cfgPrefix();
-      const cfg = (records || []).find(r => String(r.descricao || '').startsWith(prefix));
-      if (cfg) {
-        const b64 = String(cfg.descricao).slice(prefix.length);
-        try {
-          carteiras = _cartB64Dec(b64);
-        } catch(pe) {
-          // fallback: tenta JSON direto (registros antigos antes do base64)
-          carteiras = JSON.parse(b64);
-        }
+      const cfgRecs = (records || []).filter(r => String(r.descricao || '').startsWith(prefix));
+      if (cfgRecs.length > 0) {
+        // Extrai índice e dado de cada chunk, ordena e concatena
+        const chunks = cfgRecs.map(r => {
+          const rest = String(r.descricao).slice(prefix.length);
+          const sep = rest.indexOf('|');
+          return { idx: sep > -1 ? parseInt(rest.slice(0, sep)) || 0 : 0, data: sep > -1 ? rest.slice(sep + 1) : rest };
+        }).sort((a, b) => a.idx - b.idx);
+        const encoded = chunks.map(c => c.data).join('');
+        try { carteiras = _cartB64Dec(encoded); } catch(e) { carteiras = JSON.parse(encoded); }
         localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
-        _setSyncStatus('✅ Banco de dados (' + carteiras.length + ' carteira(s) — ' + total + ' registros lidos)', true);
+        _setSyncStatus('✅ Banco de dados (' + carteiras.length + ' carteira(s))', true);
         return true;
       }
-      _setSyncStatus('⚠️ Sem dados no banco (' + total + ' registros lidos, prefixo: ' + prefix + ')', false);
+      _setSyncStatus('⚠️ Sem dados no banco ainda — salve uma carteira para sincronizar', null);
     } catch(e) {
-      _setSyncStatus('❌ Erro: ' + e.message, false);
+      _setSyncStatus('❌ Erro ao carregar: ' + e.message, false);
     }
     return false;
   }
@@ -3576,14 +3578,22 @@
       if (!paulToken) await paulAuth();
       const records = await paulFetch('GET', '/paulistinha/financeiro');
       const prefix = _cfgPrefix();
+      // Apaga todos os chunks antigos
       const existentes = (records || []).filter(r => String(r.descricao || '').startsWith(prefix));
       for (const r of existentes) await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id);
-      const res = await paulFetch('POST', '/paulistinha/financeiro', {
-        data: _CFG_DATE, tipo: _CFG_TIPO,
-        descricao: prefix + _cartB64Enc(carteiras), valor: 0.01
-      });
-      if (!res || !res.id) throw new Error('POST não retornou ID. Resposta: ' + JSON.stringify(res));
-      _setSyncStatus('✅ Salvo no banco (' + carteiras.length + ' carteira(s))', true);
+      // Divide em chunks e salva cada um
+      const encoded = _cartB64Enc(carteiras);
+      const chunks = [];
+      for (let i = 0; i < encoded.length; i += _CHUNK_SIZE) chunks.push(encoded.slice(i, i + _CHUNK_SIZE));
+      if (chunks.length === 0) chunks.push(''); // garante ao menos 1 registro
+      for (let i = 0; i < chunks.length; i++) {
+        const res = await paulFetch('POST', '/paulistinha/financeiro', {
+          data: _CFG_DATE, tipo: _CFG_TIPO,
+          descricao: prefix + i + '|' + chunks[i], valor: 0.01
+        });
+        if (!res || !res.id) throw new Error('Chunk ' + i + ' não foi salvo');
+      }
+      _setSyncStatus('✅ Salvo no banco (' + carteiras.length + ' carteira(s), ' + chunks.length + ' parte(s))', true);
     } catch(e) {
       _setSyncStatus('❌ Erro ao salvar: ' + e.message, false);
       alert('⚠️ Erro ao sincronizar carteiras:\n' + e.message + '\n\nDados salvos localmente.');
