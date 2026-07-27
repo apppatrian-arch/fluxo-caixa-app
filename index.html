@@ -3373,6 +3373,8 @@
   // ══════════════════════════════════════════
   async function initAcoes() {
     renderTokenAcoes();
+    // Garante autenticação antes de carregar do DB
+    if (!paulToken) await paulAuth();
     const loaded = await carregarCarteirasDB();
     if (!loaded) {
       carteiras = JSON.parse(localStorage.getItem(_chavCarteiras()) || '[]');
@@ -3521,11 +3523,13 @@
   const _CFG_TIPO = '_cfg';
 
   function _chavCarteiras() { return chaveLocal('carteiras'); }
-  function _cfgPrefix() { return '_carteiras_' + (currentUser || '') + '|'; }
+  // Email sempre em lowercase para garantir match entre dispositivos
+  function _cfgPrefix() { return '_carteiras_' + (currentUser || '').toLowerCase() + '|'; }
 
   async function carregarCarteirasDB() {
     try {
-      const records = await paulFetch('GET', '/paulistinha/financeiro?data_inicio=' + _CFG_DATE + '&data_fim=' + _CFG_DATE);
+      // Sem date params — mesma chamada do renderFinanceiro (API filtra server-side pode não existir)
+      const records = await paulFetch('GET', '/paulistinha/financeiro');
       const prefix = _cfgPrefix();
       const cfg = (records || []).find(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
       if (cfg) {
@@ -3533,21 +3537,24 @@
         localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
         return true;
       }
-    } catch(e) { /* fallback */ }
+    } catch(e) { console.warn('Carregar carteiras DB:', e.message); }
     return false;
   }
 
   async function sincronizarCarteirasDB() {
     try {
-      const records = await paulFetch('GET', '/paulistinha/financeiro?data_inicio=' + _CFG_DATE + '&data_fim=' + _CFG_DATE);
+      const records = await paulFetch('GET', '/paulistinha/financeiro');
       const prefix = _cfgPrefix();
       const existentes = (records || []).filter(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
       for (const r of existentes) await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id);
-      await paulFetch('POST', '/paulistinha/financeiro', {
+      const res = await paulFetch('POST', '/paulistinha/financeiro', {
         data: _CFG_DATE, tipo: _CFG_TIPO,
         descricao: prefix + JSON.stringify(carteiras), valor: 0
       });
-    } catch(e) { console.warn('Sync carteiras DB:', e.message); }
+      if (!res || !res.id) throw new Error('POST não retornou ID');
+    } catch(e) {
+      alert('⚠️ Erro ao sincronizar carteiras com o banco:\n' + e.message + '\n\nOs dados foram salvos localmente.');
+    }
   }
 
   function salvarCarteiras() {
