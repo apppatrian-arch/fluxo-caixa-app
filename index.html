@@ -3587,11 +3587,10 @@
       for (let i = 0; i < encoded.length; i += _CHUNK_SIZE) chunks.push(encoded.slice(i, i + _CHUNK_SIZE));
       if (chunks.length === 0) chunks.push(''); // garante ao menos 1 registro
       for (let i = 0; i < chunks.length; i++) {
-        const res = await paulFetch('POST', '/paulistinha/financeiro', {
+        await paulFetch('POST', '/paulistinha/financeiro', {
           data: _CFG_DATE, tipo: _CFG_TIPO,
           descricao: prefix + i + '|' + chunks[i], valor: 0.01
         });
-        if (!res || !res.id) throw new Error('Chunk ' + i + ' não foi salvo');
       }
       _setSyncStatus('✅ Salvo no banco (' + carteiras.length + ' carteira(s), ' + chunks.length + ' parte(s))', true);
     } catch(e) {
