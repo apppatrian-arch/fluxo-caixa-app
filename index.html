@@ -3371,9 +3371,12 @@
   // ══════════════════════════════════════════
   //  AÇÕES B3 — brapi.dev
   // ══════════════════════════════════════════
-  function initAcoes() {
+  async function initAcoes() {
     renderTokenAcoes();
-    carteiras = JSON.parse(localStorage.getItem(_chavCarteiras()) || '[]');
+    const loaded = await carregarCarteirasDB();
+    if (!loaded) {
+      carteiras = JSON.parse(localStorage.getItem(_chavCarteiras()) || '[]');
+    }
     renderCarteiras();
   }
 
@@ -3514,10 +3517,42 @@
   // ══════════════════════════════════════════
   let carteiras = [];
 
+  const _CFG_DATE = '2000-01-01';
+  const _CFG_TIPO = '_cfg';
+
   function _chavCarteiras() { return chaveLocal('carteiras'); }
+  function _cfgPrefix() { return '_carteiras_' + (currentUser || '') + '|'; }
+
+  async function carregarCarteirasDB() {
+    try {
+      const records = await paulFetch('GET', '/paulistinha/financeiro?data_inicio=' + _CFG_DATE + '&data_fim=' + _CFG_DATE);
+      const prefix = _cfgPrefix();
+      const cfg = (records || []).find(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
+      if (cfg) {
+        carteiras = JSON.parse(String(cfg.descricao).slice(prefix.length));
+        localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
+        return true;
+      }
+    } catch(e) { /* fallback */ }
+    return false;
+  }
+
+  async function sincronizarCarteirasDB() {
+    try {
+      const records = await paulFetch('GET', '/paulistinha/financeiro?data_inicio=' + _CFG_DATE + '&data_fim=' + _CFG_DATE);
+      const prefix = _cfgPrefix();
+      const existentes = (records || []).filter(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
+      for (const r of existentes) await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id);
+      await paulFetch('POST', '/paulistinha/financeiro', {
+        data: _CFG_DATE, tipo: _CFG_TIPO,
+        descricao: prefix + JSON.stringify(carteiras), valor: 0
+      });
+    } catch(e) { console.warn('Sync carteiras DB:', e.message); }
+  }
 
   function salvarCarteiras() {
     localStorage.setItem(_chavCarteiras(), JSON.stringify(carteiras));
+    sincronizarCarteirasDB();
   }
 
   function abrirModalCarteira(id) {
@@ -4790,10 +4825,11 @@
       window._paulFinMap = {};
       (todos||[]).forEach(l => { window._paulFinMap[l.id] = l; });
 
-      // Filtro por data
+      // Filtro por data (exclui registros internos de config)
       const ini = document.getElementById('pfin-filtro-ini').value;
       const fim = document.getElementById('pfin-filtro-fim').value;
       const lancamentos = (todos||[]).filter(l => {
+        if (l.tipo === '_cfg') return false;
         const d = String(l.data).slice(0,10);
         return (!ini || d >= ini) && (!fim || d <= fim);
       });
