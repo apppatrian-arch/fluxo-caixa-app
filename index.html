@@ -3524,7 +3524,8 @@
   let carteiras = [];
 
   const _CFG_DATE = '2000-01-01';
-  const _CFG_TIPO = '_cfg';
+  const _CFG_TIPO = 'cred';
+  const _CFG_DESC_MARKER = '_carteiras_';
 
   function _chavCarteiras() { return chaveLocal('carteiras'); }
   function _cfgPrefix() { return '_carteiras_' + (currentUser || '').toLowerCase() + '|'; }
@@ -3550,7 +3551,7 @@
       const records = await paulFetch('GET', '/paulistinha/financeiro');
       const total = (records || []).length;
       const prefix = _cfgPrefix();
-      const cfg = (records || []).find(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
+      const cfg = (records || []).find(r => String(r.descricao || '').startsWith(prefix));
       if (cfg) {
         const b64 = String(cfg.descricao).slice(prefix.length);
         try {
@@ -3575,7 +3576,7 @@
       if (!paulToken) await paulAuth();
       const records = await paulFetch('GET', '/paulistinha/financeiro');
       const prefix = _cfgPrefix();
-      const existentes = (records || []).filter(r => r.tipo === _CFG_TIPO && String(r.descricao || '').startsWith(prefix));
+      const existentes = (records || []).filter(r => String(r.descricao || '').startsWith(prefix));
       for (const r of existentes) await paulFetch('DELETE', '/paulistinha/financeiro/' + r.id);
       const res = await paulFetch('POST', '/paulistinha/financeiro', {
         data: _CFG_DATE, tipo: _CFG_TIPO,
@@ -4876,7 +4877,7 @@
       const ini = document.getElementById('pfin-filtro-ini').value;
       const fim = document.getElementById('pfin-filtro-fim').value;
       const lancamentos = (todos||[]).filter(l => {
-        if (l.tipo === '_cfg') return false;
+        if (String(l.descricao || '').startsWith('_carteiras_')) return false;
         const d = String(l.data).slice(0,10);
         return (!ini || d >= ini) && (!fim || d <= fim);
       });
