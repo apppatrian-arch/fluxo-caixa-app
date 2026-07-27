@@ -234,6 +234,19 @@
       margin: 0 auto;
     }
 
+    @media (min-width: 768px) {
+      .content.content-wide {
+        max-width: 980px;
+        padding: 20px 24px;
+      }
+      .acoes-desktop-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.6fr;
+        gap: 20px;
+        align-items: start;
+      }
+    }
+
     /* ── SALDO CARD ── */
     .saldo-card {
       background: linear-gradient(135deg, #1a73e8 0%, #0f5dbf 100%);
@@ -1210,61 +1223,70 @@
 
     <!-- ── PAINEL AÇÕES ── -->
     <div id="painel-acoes" style="display:none;">
+      <div class="acoes-desktop-grid">
 
-      <!-- Token brapi.dev -->
-      <div id="acoes-token-box" style="display:none;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
-        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🔑 Token brapi.dev necessário</div>
-        <div style="font-size:12px;color:#78350f;margin-bottom:10px;">
-          Acesse <strong>brapi.dev</strong>, crie uma conta gratuita e cole seu token abaixo.
-        </div>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="acoes-token-input" placeholder="Cole seu token aqui..."
-            style="flex:1;padding:9px 12px;border:1.5px solid #f59e0b;border-radius:8px;font-size:13px;background:var(--surface);color:#1c1c1e;" />
-          <button onclick="salvarTokenAcoes()" style="padding:9px 14px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Salvar</button>
-        </div>
-      </div>
+        <!-- COLUNA ESQUERDA: Token + Cotação -->
+        <div>
 
-      <!-- Token salvo — exibido quando há token gravado -->
-      <div id="acoes-token-salvo" style="display:none;background:#f0fdf4;border:1.5px solid #22c55e;border-radius:14px;padding:12px 16px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#15803d;">🔑 Token brapi.dev gravado</div>
-            <div id="acoes-token-data" style="font-size:11px;color:#166534;margin-top:2px;"></div>
+          <!-- Token brapi.dev -->
+          <div id="acoes-token-box" style="display:none;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🔑 Token brapi.dev necessário</div>
+            <div style="font-size:12px;color:#78350f;margin-bottom:10px;">
+              Acesse <strong>brapi.dev</strong>, crie uma conta gratuita e cole seu token abaixo.
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="acoes-token-input" placeholder="Cole seu token aqui..."
+                style="flex:1;padding:9px 12px;border:1.5px solid #f59e0b;border-radius:8px;font-size:13px;background:var(--surface);color:#1c1c1e;" />
+              <button onclick="salvarTokenAcoes()" style="padding:9px 14px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Salvar</button>
+            </div>
           </div>
-          <div style="display:flex;gap:6px;">
-            <button onclick="copiarTokenAcoes()" style="padding:7px 12px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copiar</button>
-            <button onclick="alterarTokenAcoes()" style="padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);">✏️ Alterar</button>
+
+          <!-- Token salvo -->
+          <div id="acoes-token-salvo" style="display:none;background:#f0fdf4;border:1.5px solid #22c55e;border-radius:14px;padding:12px 16px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#15803d;">🔑 Token brapi.dev gravado</div>
+                <div id="acoes-token-data" style="font-size:11px;color:#166534;margin-top:2px;"></div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button onclick="copiarTokenAcoes()" style="padding:7px 12px;background:#22c55e;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📋 Copiar</button>
+                <button onclick="alterarTokenAcoes()" style="padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text);">✏️ Alterar</button>
+              </div>
+            </div>
+            <div id="acoes-token-preview" style="margin-top:8px;font-size:12px;font-family:monospace;color:#15803d;word-break:break-all;background:#dcfce7;border-radius:6px;padding:6px 8px;"></div>
           </div>
-        </div>
-        <div id="acoes-token-preview" style="margin-top:8px;font-size:11px;font-family:monospace;color:#15803d;word-break:break-all;background:#dcfce7;border-radius:6px;padding:6px 8px;"></div>
-      </div>
 
-      <!-- Busca cotação atual -->
-      <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Cotação Atual</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <input type="text" id="acoes-ticker" placeholder="Ex: BBAS3, PETR4, VALE3..." maxlength="10"
-            style="flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-weight:700;text-transform:uppercase;background:var(--bg);color:var(--text);"
-            oninput="this.value=this.value.toUpperCase()"
-            onkeydown="if(event.key==='Enter') buscarCotacao()" />
-          <button onclick="buscarCotacao()" style="padding:11px 18px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;">Buscar</button>
-        </div>
-        <div id="acoes-resultado"></div>
-      </div>
-
-      <!-- Minhas Carteiras -->
-      <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div style="font-size:13px;font-weight:700;">💼 Minhas Carteiras</div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button onclick="forcaSincCarteiras()" title="Sincronizar com banco de dados" style="padding:6px 10px;background:transparent;border:1.5px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-muted);">🔄</button>
-            <button onclick="abrirModalCarteira()" style="padding:7px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">+ Nova Carteira</button>
+          <!-- Busca cotação atual -->
+          <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Cotação Atual</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <input type="text" id="acoes-ticker" placeholder="Ex: BBAS3, PETR4, VALE3..." maxlength="10"
+                style="flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-weight:700;text-transform:uppercase;background:var(--bg);color:var(--text);"
+                oninput="this.value=this.value.toUpperCase()"
+                onkeydown="if(event.key==='Enter') buscarCotacao()" />
+              <button onclick="buscarCotacao()" style="padding:11px 18px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;">Buscar</button>
+            </div>
+            <div id="acoes-resultado"></div>
           </div>
-        </div>
-        <div id="acoes-sync-status" style="font-size:10px;color:var(--text-muted);margin-bottom:10px;"></div>
-        <div id="carteiras-lista"></div>
-      </div>
 
+        </div><!-- /coluna esquerda -->
+
+        <!-- COLUNA DIREITA: Carteiras -->
+        <div>
+          <div style="background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <div style="font-size:14px;font-weight:700;">💼 Minhas Carteiras</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button onclick="forcaSincCarteiras()" title="Sincronizar com banco de dados" style="padding:6px 10px;background:transparent;border:1.5px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-muted);">🔄</button>
+                <button onclick="abrirModalCarteira()" style="padding:7px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">+ Nova Carteira</button>
+              </div>
+            </div>
+            <div id="acoes-sync-status" style="font-size:11px;color:var(--text-muted);margin-bottom:10px;"></div>
+            <div id="carteiras-lista"></div>
+          </div>
+        </div><!-- /coluna direita -->
+
+      </div><!-- /acoes-desktop-grid -->
     </div><!-- /painel-acoes -->
 
 <!-- MODAL NOVA/EDITAR CARTEIRA -->
@@ -1760,6 +1782,7 @@
   }
 
   function setTab(tab) {
+    document.querySelector('.content').classList.toggle('content-wide', tab === 'acoes');
     ['pessoal', 'paulistinha', 'acoes'].forEach(t => {
       document.getElementById('painel-' + t).style.display = (t === tab) ? 'block' : 'none';
       const btn = document.getElementById('tab-' + t);
